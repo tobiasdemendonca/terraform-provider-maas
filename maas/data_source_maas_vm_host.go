@@ -135,7 +135,7 @@ func dataSourceVMHostRead(ctx context.Context, d *schema.ResourceData, meta inte
 		"resources_cores_total":         vmHost.Total.Cores,
 		"resources_local_storage_total": vmHost.Total.LocalStorage,
 		"resources_memory_total":        vmHost.Total.Memory,
-		"zone":                          vmHost.Zone.Name,cloudus
+		"zone":                          vmHost.Zone.Name,
 		"type":                          vmHost.Type,
 		"tags":                          vmHost.Tags,
 	}
