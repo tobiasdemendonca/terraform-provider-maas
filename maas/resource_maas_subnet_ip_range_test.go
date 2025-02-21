@@ -81,7 +81,7 @@ func testAccMAASSubnetIPRange(
 	// A subnet is required to create an IP range
 	return fmt.Sprintf(`
 		resource "maas_subnet" "test_subnet" { 
-			cidr = "10.88.88.0/25"
+			cidr = "10.88.88.0/26" 
 			name = "test-tf-subnet"
 			gateway_ip = "10.88.88.1"
 			dns_servers = ["8.8.8.8"]
@@ -104,7 +104,7 @@ func testAccCheckMAASSubnetIPRangeDestroy(s *terraform.State) error {
 	// loop through the resources in state, verifying each maas_subnet_ip_range
 	// is destroyed
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "maas_subnet_ip_range" {
+		if rs.Type != "maas_subnet_ip_range" && rs.Type != "maas_subnet" {
 			continue
 		}
 		
@@ -113,18 +113,31 @@ func testAccCheckMAASSubnetIPRangeDestroy(s *terraform.State) error {
 		if err != nil {
 			return err
 		}
-		response, err := conn.IPRange.Get(id)
-		if err == nil {
-			if response != nil && response.ID == id {
-				return fmt.Errorf("MAAS Subnet IP Range (%s) still exists.", rs.Primary.ID)
-			}
 
-			return nil
+		var exists bool
+		if rs.Type == "maas_subnet_ip_range" {
+			response, err := conn.IPRange.Get(id)
+			if err == nil {
+				if response != nil && response.ID == id {
+					exists = true
+				}
+			}
+		} else {
+			response, err := conn.Subnet.Get(id)
+			if err == nil {
+				if response != nil && response.ID == id {
+					exists = true
+				}
+			}
+		}
+
+		if exists {
+			return fmt.Errorf("MAAS %s (%s) still exists.", rs.Type, rs.Primary.ID)
 		}
 
 		// If the error is equivalent to 404 not found, the maas_resource_pool is destroyed.
 		// Otherwise return the error
-		if !strings.Contains(err.Error(), "404 Not Found") {
+		if err != nil && !strings.Contains(err.Error(), "404 Not Found") {
 			return err
 		}
 	}
