@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/canonical/gomaasclient/entity"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -16,6 +17,9 @@ import (
 func TestAccResourceMaasSubnetIPRange_basic(t *testing.T) {
 	// Setup ip range attrs
 	var ipRange entity.IPRange
+	
+	subnet_name := acctest.RandomWithPrefix("test-subnet")
+
 	range_type := "reserved"
 	comment := "test-comment"
 	start_ip := "10.88.88.1"
@@ -39,7 +43,7 @@ func TestAccResourceMaasSubnetIPRange_basic(t *testing.T) {
 		ErrorCheck:   func(err error) error { return err },
 		Steps: []resource.TestStep{
 			{
-				Config: testAccMAASSubnetIPRange(range_type, comment, start_ip, end_ip),
+				Config: testAccSubnetIPRangeExampleResource(subnet_name, range_type, comment, start_ip, end_ip),
 				Check:  resource.ComposeTestCheckFunc(checks...),
 			},
 		},
@@ -73,7 +77,10 @@ func testAccMAASSubnetIPRangeCheckExists(rn string, ipRange *entity.IPRange) res
 	}
 }
 
-func testAccMAASSubnetIPRange(
+// An example resource configuration for a subnet IP range.
+// Note that a subnet is required to create an IP range.
+func testAccSubnetIPRangeExampleResource(
+	name_subnet string,
 	range_type string,
 	comment string,
 	start_ip string,
@@ -83,7 +90,7 @@ func testAccMAASSubnetIPRange(
 	return fmt.Sprintf(`
 		resource "maas_subnet" "test_subnet" { 
 			cidr = "10.88.88.0/26" 
-			name = "test-tf-subnet"
+			name = "%s"
 			gateway_ip = "10.88.88.1"
 			dns_servers = ["8.8.8.8"]
 		}
@@ -95,7 +102,7 @@ func testAccMAASSubnetIPRange(
 			end_ip = "%s"
 			comment = "%s"
 		}
-	`, range_type, start_ip, end_ip, comment)
+	`, name_subnet, range_type, start_ip, end_ip, comment)
 }
 
 func testAccCheckMAASSubnetIPRangeDestroy(s *terraform.State) error {
