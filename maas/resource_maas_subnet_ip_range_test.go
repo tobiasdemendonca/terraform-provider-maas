@@ -83,9 +83,6 @@ func testAccMAASSubnetIPRangeCheckExists(rn string, ipRange *entity.IPRange) res
 	}
 }
 
-// func testAccMAASIPRangeCheckStateUpToDate(
-
-// )
 // An example resource configuration for a subnet IP range.
 // Note that a subnet is required to create an IP range.
 func testAccSubnetIPRangeExampleResource(
@@ -98,18 +95,18 @@ func testAccSubnetIPRangeExampleResource(
 	// A subnet is required to create an IP range
 	return fmt.Sprintf(`
 		resource "maas_subnet" "test_subnet" { 
-			cidr = "10.88.88.0/26" 
-			name = "%s"
-			gateway_ip = "10.88.88.1"
+			cidr 		= "10.88.88.0/26" 
+			name 		= "%s"
+			gateway_ip  = "10.88.88.1"
 			dns_servers = ["8.8.8.8"]
 		}
 
 		resource "maas_subnet_ip_range" "test_ip_range" {
-			subnet = maas_subnet.test_subnet.id
-			type = "%s"
-			start_ip = "%s"
-			end_ip = "%s"
-			comment = "%s"
+			subnet 		= maas_subnet.test_subnet.id
+			type 		= "%s"
+			start_ip 	= "%s"
+			end_ip 		= "%s"
+			comment		= "%s"
 		}
 	`, name_subnet, range_type, start_ip, end_ip, comment)
 }
@@ -121,7 +118,7 @@ func testAccCheckMAASSubnetIPRangeDestroy(s *terraform.State) error {
 	// loop through the resources in state, verifying each maas_subnet_ip_range
 	// is destroyed
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "maas_subnet_ip_range" && rs.Type != "maas_subnet" {
+		if rs.Type != "maas_subnet_ip_range" {
 			continue
 		}
 
@@ -131,20 +128,13 @@ func testAccCheckMAASSubnetIPRangeDestroy(s *terraform.State) error {
 			return err
 		}
 
+		// Check if the IP range exists
 		var exists bool
-		if rs.Type == "maas_subnet_ip_range" {
-			response, err := conn.IPRange.Get(id)
-			if err == nil {
-				if response != nil && response.ID == id {
-					exists = true
-				}
-			}
-		} else {
-			response, err := conn.Subnet.Get(id)
-			if err == nil {
-				if response != nil && response.ID == id {
-					exists = true
-				}
+
+		response, err := conn.IPRange.Get(id)
+		if err == nil {
+			if response != nil && response.ID == id {
+				exists = true
 			}
 		}
 
@@ -154,7 +144,7 @@ func testAccCheckMAASSubnetIPRangeDestroy(s *terraform.State) error {
 
 		// If the error is equivalent to 404 not found, the maas_resource_pool is destroyed.
 		// Otherwise return the error
-		if err != nil && !strings.Contains(err.Error(), "404 Not Found") {
+		if !strings.Contains(err.Error(), "404 Not Found") {
 			return err
 		}
 	}
