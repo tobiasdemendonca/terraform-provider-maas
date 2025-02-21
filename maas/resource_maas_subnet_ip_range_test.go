@@ -17,7 +17,7 @@ import (
 func TestAccResourceMaasSubnetIPRange_basic(t *testing.T) {
 	// Setup ip range attrs
 	var ipRange entity.IPRange
-	
+
 	subnet_name := acctest.RandomWithPrefix("test-subnet")
 	ip_range_attr := "maas_subnet_ip_range.test_ip_range"
 	range_type := "reserved"
