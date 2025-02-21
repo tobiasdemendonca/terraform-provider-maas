@@ -15,40 +15,72 @@ import (
 )
 
 func TestAccResourceMaasSubnetIPRange_basic(t *testing.T) {
-	// Setup ip range attrs
+	// Setup ip range parameters
 	var ipRange entity.IPRange
-
 	subnet_name := acctest.RandomWithPrefix("test-subnet")
-	ip_range_attr := "maas_subnet_ip_range.test_ip_range"
+	ipRangeAttrName := "maas_subnet_ip_range.test_ip_range"
 	range_type := "reserved"
 	comment := "test-comment"
-	start_ip := "10.88.88.1"
-	end_ip := "10.88.88.50"
+	ipStart := "10.88.88.1"
+	ipEnd := "10.88.88.50"
+	ipStartMod := "10.88.88.2"
+	ipEndMod := "10.88.88.49"
+	commentMod := "a-different-comment"
 
-	pre_check := func() { testutils.PreCheck(t, nil) }
-
+	// Check functions
 	checks := []resource.TestCheckFunc{
-		testAccMAASSubnetIPRangeCheckExists(ip_range_attr, &ipRange),
-		resource.TestCheckResourceAttr(ip_range_attr, "type", range_type),
-		resource.TestCheckResourceAttr(ip_range_attr, "comment", comment),
-		resource.TestCheckResourceAttr(ip_range_attr, "start_ip", start_ip),
-		resource.TestCheckResourceAttr(ip_range_attr, "end_ip", end_ip),
+		testAccMAASSubnetIPRangeCheckExists(ipRangeAttrName, &ipRange),
+		resource.TestCheckResourceAttr(ipRangeAttrName, "type", range_type),
+		resource.TestCheckResourceAttr(ipRangeAttrName, "comment", comment),
+		resource.TestCheckResourceAttr(ipRangeAttrName, "start_ip", ipStart),
+		resource.TestCheckResourceAttr(ipRangeAttrName, "end_ip", ipEnd),
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     pre_check,
+		PreCheck:     func() { testutils.PreCheck(t, nil) },
 		Providers:    testutils.TestAccProviders,
 		CheckDestroy: testAccCheckMAASSubnetIPRangeDestroy,
 		ErrorCheck:   func(err error) error { return err },
 		Steps: []resource.TestStep{
-			// Test create
+			// Test creation
 			{
-				Config: testAccSubnetIPRangeExampleResource(subnet_name, range_type, comment, start_ip, end_ip),
-				Check:  resource.ComposeTestCheckFunc(checks...),
+				Config: testAccSubnetIPRangeExampleResource(
+					subnet_name,
+					range_type,
+					comment,
+					ipStart,
+					ipEnd,
+				),
+				Check: resource.ComposeTestCheckFunc(checks...),
+			},
+			// Test if resource drift is detected by modifying the IP range using the
+			// GO MAAS client, and then checking if the state is updated correctly on
+			// refresh
+			{
+				PreConfig: func() {
+					client := testutils.TestAccProvider.Meta().(*maas.ClientConfig).Client
+					params := entity.IPRangeParams{
+						Type:    range_type,
+						Comment: commentMod,
+						StartIP: ipStartMod,
+						EndIP:   ipEndMod,
+						Subnet:  strconv.Itoa(ipRange.Subnet.ID),
+					}
+					// Update the IP range to changed values that should be read into state
+					_, err := client.IPRange.Update(ipRange.ID, &params)
+					if err != nil {
+						t.Fatalf("Failed to update IP range: %s", err)
+					}
+				},
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(ipRangeAttrName, "start_ip", ipStartMod),
+				),
 			},
 			// Test import
 			{
-				ResourceName:      ip_range_attr,
+				ResourceName:      ipRangeAttrName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -56,6 +88,7 @@ func TestAccResourceMaasSubnetIPRange_basic(t *testing.T) {
 	})
 }
 
+// Check if the IP range specified actually exists in MAAS
 func testAccMAASSubnetIPRangeCheckExists(rn string, ipRange *entity.IPRange) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
