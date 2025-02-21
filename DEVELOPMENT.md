@@ -173,7 +173,6 @@ To run the tests:
     Note that you may need to specify a specific environment variables for some tests to pass, for example machine or fabric ids. Add these to your `env.sh` file before sourcing it again, if required:
     ```bash
     export TF_ACC=1
-    export TF_ACC_FABRIC=<fabric_id> # e.g. 8
     export TF_ACC_NETWORK_INTERFACE_MACHINE=<machine_id> # e.g. b68rn4
     export TF_ACC_TAG_MACHINES=<machine_id> # e.g. b68rn4
     ```
