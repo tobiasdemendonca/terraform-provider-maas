@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestResourceMaasSubnetIPRange(t *testing.T) {
+func TestAccResourceMaasSubnetIPRange_basic(t *testing.T) {
 	// Setup ip range attrs
 	var ipRange entity.IPRange
 	range_type := "reserved"
@@ -36,6 +36,7 @@ func TestResourceMaasSubnetIPRange(t *testing.T) {
 		PreCheck:     pre_check,
 		Providers:    testutils.TestAccProviders,
 		CheckDestroy: testAccCheckMAASSubnetIPRangeDestroy,
+		ErrorCheck:   func(err error) error { return err },
 		Steps: []resource.TestStep{
 			{
 				Config: testAccMAASSubnetIPRange(range_type, comment, start_ip, end_ip),
