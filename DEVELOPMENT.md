@@ -158,17 +158,19 @@ Where
    1. Run `terraform destroy` to destroy the resources.
 
 ## Testing
+Tests are written as advised in the [Terraform docs](https://developer.hashicorp.com/terraform/plugin/sdkv2/testing). They are split into unit tests and acceptance tests, with the latter creating real resources in the MAAS environment. Therefore, you will need to ensure MAAS is running locally for these tests to pass.
 
-- Ensure MAAS_API_KEY and MAAS_API_URL are set in your environment (see [Running the local provider](#running-the-local-provider)).
-- Run the unit tests with:
+To run the tests:
+1. Ensure MAAS_API_KEY and MAAS_API_URL environment variables are set (see [Running the local provider](#running-the-local-provider)).
+1. Run the unit tests with:
     ```bash
     make test
     ```
-- Run the unit tests and terraform acceptance tests with:
+1. Run both the unit tests and terraform acceptance tests with:
     ```bash
     make testacc
     ```
-    Note that you may need to specify a specific machine or fabric to test against as other environment variables. Add these to your `env.sh` file before sourcing it again, if required:
+    Note that you may need to specify a specific environment variables for some tests to pass, for example machine or fabric ids. Add these to your `env.sh` file before sourcing it again, if required:
     ```bash
     export TF_ACC=1
     export TF_ACC_FABRIC=<fabric_id> # e.g. 8
