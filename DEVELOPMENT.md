@@ -81,7 +81,7 @@ Where
 1. Build a local version of the provider. At the root of the repository run:
    1. Run `make build` to build the provider.
    1. Run `make install` to install the provider locally. This installs the provider binary in the `~/.terraform.d/plugins` directory.
-1. Create a terraform 
+1. Create a terraform configuration:
    1. Create a new directory with a `main.tf` file:
        ```bash
        mkdir -p ./terraform-provider-maas-dev
