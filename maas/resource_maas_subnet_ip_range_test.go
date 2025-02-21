@@ -33,8 +33,8 @@ func TestResourceMaasSubnetIPRange(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: pre_check,
-		Providers: testutils.TestAccProviders,
+		PreCheck:     pre_check,
+		Providers:    testutils.TestAccProviders,
 		CheckDestroy: testAccCheckMAASSubnetIPRangeDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -107,7 +107,7 @@ func testAccCheckMAASSubnetIPRangeDestroy(s *terraform.State) error {
 		if rs.Type != "maas_subnet_ip_range" && rs.Type != "maas_subnet" {
 			continue
 		}
-		
+
 		// retrieve the maas_subnet_ip_range by referencing it's state ID for API lookup
 		id, err := strconv.Atoi(rs.Primary.ID)
 		if err != nil {
