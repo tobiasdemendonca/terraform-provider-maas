@@ -127,19 +127,19 @@ func testAccSubnetIPRangeExampleResource(
 ) string {
 	// A subnet is required to create an IP range
 	return fmt.Sprintf(`
-		resource "maas_subnet" "test_subnet" { 
-			cidr 		= "10.88.88.0/26" 
-			name 		= "%s"
-			gateway_ip  = "10.88.88.1"
-			dns_servers = ["8.8.8.8"]
+		resource "maas_subnet" "test_subnet" {
+		  cidr        = "10.88.88.0/26"
+		  name        = "%s"
+		  gateway_ip  = "10.88.88.1"
+		  dns_servers = ["8.8.8.8"]
 		}
 
 		resource "maas_subnet_ip_range" "test_ip_range" {
-			subnet 		= maas_subnet.test_subnet.id
-			type 		= "%s"
-			start_ip 	= "%s"
-			end_ip 		= "%s"
-			comment		= "%s"
+		  subnet   = maas_subnet.test_subnet.id
+		  type     = "%s"
+		  start_ip = "%s"
+		  end_ip   = "%s"
+		  comment  = "%s"
 		}
 	`, name_subnet, range_type, start_ip, end_ip, comment)
 }
