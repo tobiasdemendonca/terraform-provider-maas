@@ -87,6 +87,13 @@ func TestAccResourceMaasSubnetIPRange_basic(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
+			// Test import using start_ip:end_ip format
+			{
+				ResourceName:      ipRangeAttrName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     fmt.Sprintf("%s:%s", ipStartMod, ipEndMod),
+			},
 		},
 	})
 }
