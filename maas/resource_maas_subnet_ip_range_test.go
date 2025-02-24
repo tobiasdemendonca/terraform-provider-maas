@@ -54,7 +54,7 @@ func TestAccResourceMaasSubnetIPRange_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(checks...),
 			},
 			// Test if resource drift is detected by modifying the IP range using the
-			// GO MAAS client, and then checking if the state is updated correctly on
+			// Go MAAS client, and then checking if the state is updated correctly on
 			// refresh
 			{
 				PreConfig: func() {
