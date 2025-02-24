@@ -76,6 +76,9 @@ func TestAccResourceMaasSubnetIPRange_basic(t *testing.T) {
 				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(ipRangeAttrName, "start_ip", ipStartMod),
+					resource.TestCheckResourceAttr(ipRangeAttrName, "end_ip", ipEndMod),
+					resource.TestCheckResourceAttr(ipRangeAttrName, "comment", commentMod),
+					resource.TestCheckResourceAttr(ipRangeAttrName, "type", range_type),
 				),
 			},
 			// Test import
