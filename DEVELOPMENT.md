@@ -170,7 +170,7 @@ To run the tests:
     ```bash
     make testacc
     ```
-    Note that you may need to specify a specific environment variables for some tests to pass, for example machine or fabric ids. Add these to your `env.sh` file before sourcing it again, if required:
+    Note that you may need to specify a specific environment variables for some tests to pass, for example machine ids. Add these to your `env.sh` file before sourcing it again, if required:
     ```bash
     export TF_ACC=1
     export TF_ACC_NETWORK_INTERFACE_MACHINE=<machine_id> # e.g. b68rn4
