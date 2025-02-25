@@ -25,10 +25,10 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
             {
                 Config: testAccMaasVMHostDeployParams(machineIdentifier),
                 Check: resource.ComposeTestCheckFunc(
-                    resource.TestCheckResourceAttr("maas_vm_host.test", "type", "lxd"),
-                    resource.TestCheckResourceAttr("maas_vm_host.test", "machine", machineIdentifier),
-                    resource.TestCheckResourceAttr("maas_vm_host.test", "deploy_params.0.distro_series", "jammy"),
-                    resource.TestCheckResourceAttr("maas_vm_host.test", "deploy_params.0.enable_hw_sync", "true"),
+                    resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "type", "lxd"),
+                    resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "machine", machineIdentifier),
+                    resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "deploy_params.0.distro_series", "noble"),
+                    resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "deploy_params.0.enable_hw_sync", "true"),
                 ),
             },
         },
@@ -37,7 +37,7 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
 
 func testAccMaasVMHostDeployParams(machineIdentifier string) string {
     return fmt.Sprintf(`
-	resource "maas_vm_host" "test" {
+	resource "maas_vm_host" "test-vm-host" {
 	  machine = %q
 	  type    = "lxd"
 
