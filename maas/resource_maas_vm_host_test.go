@@ -14,29 +14,29 @@ import (
 )
 
 func TestAccMAASVMHost_DeployParams(t *testing.T) {
-    // Get machine identifier from env var
-    machineIdentifier := os.Getenv("TF_ACC_VM_HOST_MACHINE")
+	// Get machine identifier from env var
+	machineIdentifier := os.Getenv("TF_ACC_VM_HOST_MACHINE")
 
-    resource.ParallelTest(t, resource.TestCase{
-        PreCheck:          func() { testutils.PreCheck(t, nil) },
-        Providers: testutils.TestAccProviders,
-        CheckDestroy: testAccCheckMAASVMHostDestroy,
-        Steps: []resource.TestStep{
-            {
-                Config: testAccMaasVMHostDeployParams(machineIdentifier),
-                Check: resource.ComposeTestCheckFunc(
-                    resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "type", "lxd"),
-                    resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "machine", machineIdentifier),
-                    resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "deploy_params.0.distro_series", "noble"),
-                    resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "deploy_params.0.enable_hw_sync", "true"),
-                ),
-            },
-        },
-    })
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testutils.PreCheck(t, nil) },
+		Providers:    testutils.TestAccProviders,
+		CheckDestroy: testAccCheckMAASVMHostDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccMaasVMHostDeployParams(machineIdentifier),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "type", "lxd"),
+					resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "machine", machineIdentifier),
+					resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "deploy_params.0.distro_series", "noble"),
+					resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "deploy_params.0.enable_hw_sync", "true"),
+				),
+			},
+		},
+	})
 }
 
 func testAccMaasVMHostDeployParams(machineIdentifier string) string {
-    return fmt.Sprintf(`
+	return fmt.Sprintf(`
 	resource "maas_vm_host" "test-vm-host" {
 	  machine = %q
 	  type    = "lxd"
