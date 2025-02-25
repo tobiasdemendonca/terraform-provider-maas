@@ -21,6 +21,7 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
 		PreCheck:     func() { testutils.PreCheck(t, nil) },
 		Providers:    testutils.TestAccProviders,
 		CheckDestroy: testAccCheckMAASVMHostDestroy,
+		ErrorCheck:   func(err error) error { return err },
 		Steps: []resource.TestStep{
 			{
 				Config: testAccMaasVMHostDeployParams(machineIdentifier),
