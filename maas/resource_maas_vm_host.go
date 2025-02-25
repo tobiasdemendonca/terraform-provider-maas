@@ -76,6 +76,41 @@ func resourceMaasVMHost() *schema.Resource {
 				Computed:    true,
 				Description: "The new VM host default macvlan mode. Supported values are: `bridge`, `passthru`, `private`, `vepa`. This is computed if it's not set.",
 			},
+			"deploy_params": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				ForceNew:    true,
+				MaxItems:    1,
+				Description: "Nested argument with the config used to deploy the allocated machine. Defined below.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"distro_series": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							ForceNew:    true,
+							Description: "The distro series used to deploy the allocated MAAS machine. If it's not given, the MAAS server default value is used.",
+						},
+						"enable_hw_sync": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							ForceNew:    true,
+							Description: "Periodically sync hardware",
+						},
+						"hwe_kernel": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							ForceNew:    true,
+							Description: "Hardware enablement kernel to use with the image. Only used when deploying Ubuntu.",
+						},
+						"user_data": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							ForceNew:    true,
+							Description: "Cloud-init user data script that gets run on the machine once it has deployed. A good practice is to set this with `file(\"/tmp/user-data.txt\")`, where `/tmp/user-data.txt` is a cloud-init script.",
+						},
+					},
+				},
+			},
 			"machine": {
 				Type:          schema.TypeString,
 				Optional:      true,
@@ -158,41 +193,6 @@ func resourceMaasVMHost() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 				Description: "The new VM host zone name. This is computed if it's not set.",
-			},
-			"deploy_params": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				ForceNew:    true,
-				MaxItems:    1,
-				Description: "Nested argument with the config used to deploy the allocated machine. Defined below.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"distro_series": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							ForceNew:    true,
-							Description: "The distro series used to deploy the allocated MAAS machine. If it's not given, the MAAS server default value is used.",
-						},
-						"enable_hw_sync": {
-							Type:        schema.TypeBool,
-							Optional:    true,
-							ForceNew:    true,
-							Description: "Periodically sync hardware",
-						},
-						"hwe_kernel": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							ForceNew:    true,
-							Description: "Hardware enablement kernel to use with the image. Only used when deploying Ubuntu.",
-						},
-						"user_data": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							ForceNew:    true,
-							Description: "Cloud-init user data script that gets run on the machine once it has deployed. A good practice is to set this with `file(\"/tmp/user-data.txt\")`, where `/tmp/user-data.txt` is a cloud-init script.",
-						},
-					},
-				},
 			},
 		},
 		Timeouts: &schema.ResourceTimeout{
