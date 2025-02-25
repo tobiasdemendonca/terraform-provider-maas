@@ -167,31 +167,31 @@ func resourceMaasVMHost() *schema.Resource {
 				Description: "Nested argument with the config used to deploy the allocated machine. Defined below.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-							"distro_series": {
-								Type:        schema.TypeString,
-								Optional:    true,
-								ForceNew:    true,
-								Description: "The distro series used to deploy the allocated MAAS machine. If it's not given, the MAAS server default value is used.",
-							},
-							"enable_hw_sync": {
-								Type:        schema.TypeBool,
-								Optional:    true,
-								ForceNew:    true,
-								Description: "Periodically sync hardware",
-							},
-							"hwe_kernel": {
-								Type:        schema.TypeString,
-								Optional:    true,
-								ForceNew:    true,
-								Description: "Hardware enablement kernel to use with the image. Only used when deploying Ubuntu.",
-							},
-							"user_data": {
-								Type:        schema.TypeString,
-								Optional:    true,
-								ForceNew:    true,
-								Description: "Cloud-init user data script that gets run on the machine once it has deployed. A good practice is to set this with `file(\"/tmp/user-data.txt\")`, where `/tmp/user-data.txt` is a cloud-init script.",
-							},
+						"distro_series": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							ForceNew:    true,
+							Description: "The distro series used to deploy the allocated MAAS machine. If it's not given, the MAAS server default value is used.",
 						},
+						"enable_hw_sync": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							ForceNew:    true,
+							Description: "Periodically sync hardware",
+						},
+						"hwe_kernel": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							ForceNew:    true,
+							Description: "Hardware enablement kernel to use with the image. Only used when deploying Ubuntu.",
+						},
+						"user_data": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							ForceNew:    true,
+							Description: "Cloud-init user data script that gets run on the machine once it has deployed. A good practice is to set this with `file(\"/tmp/user-data.txt\")`, where `/tmp/user-data.txt` is a cloud-init script.",
+						},
+					},
 				},
 			},
 		},
@@ -398,22 +398,22 @@ func getVMHost(client *client.Client, identifier string) (*entity.VMHost, error)
 
 func getVMHostDeployParams(client *client.Client, d *schema.ResourceData, vmHostType string) (*entity.MachineDeployParams, error) {
 	// Common VM host settings for default and set values
-    vmHostSettings := struct {
-        InstallKVM, RegisterVMHost     bool
-    }{
-        InstallKVM:     (vmHostType == "virsh"),
-        RegisterVMHost: (vmHostType == "lxd"),
-    }
+	vmHostSettings := struct {
+		InstallKVM, RegisterVMHost bool
+	}{
+		InstallKVM:     (vmHostType == "virsh"),
+		RegisterVMHost: (vmHostType == "lxd"),
+	}
 
 	if p, ok := d.GetOk("deploy_params"); ok {
 		deployParamsData := p.([]interface{})
 		if deployParamsData[0] != nil {
 			deployParams := deployParamsData[0].(map[string]interface{})
 			return &entity.MachineDeployParams{
-				DistroSeries:    deployParams["distro_series"].(string),
-				EnableHwSync:    deployParams["enable_hw_sync"].(bool),
-				HWEKernel:       deployParams["hwe_kernel"].(string),
-				UserData:        base64Encode([]byte(deployParams["user_data"].(string))),
+				DistroSeries:   deployParams["distro_series"].(string),
+				EnableHwSync:   deployParams["enable_hw_sync"].(bool),
+				HWEKernel:      deployParams["hwe_kernel"].(string),
+				UserData:       base64Encode([]byte(deployParams["user_data"].(string))),
 				InstallKVM:     vmHostSettings.InstallKVM,
 				RegisterVMHost: vmHostSettings.RegisterVMHost,
 			}, nil
