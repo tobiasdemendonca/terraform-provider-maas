@@ -9,15 +9,15 @@ import (
 	"terraform-provider-maas/maas/testutils"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 )
 
 func TestAccMAASVMHost_DeployParams(t *testing.T) {
 	// A VM host identifier. Used to create a VM, which is deployed as a VM host in this test.
 	vmHostIdentifier := os.Getenv("TF_ACC_VM_HOST_MACHINE")
-	// A random string to be used for test names
+	// A random string to be used for test
 	rs := acctest.RandString(8)	
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -39,7 +39,7 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
 	})
 }
 
-func testAccMaasVMHostDeployParams(vmHostIdentifier string, rs string) string {
+func testAccMaasVMHostMachineConfig(rs string, vmHostIdentifier string) string {
 	return fmt.Sprintf(`
 	resource "maas_vm_host_machine" "test-vm-host-machine-%s" {
 	  vm_host = %q
@@ -50,6 +50,11 @@ func testAccMaasVMHostDeployParams(vmHostIdentifier string, rs string) string {
 	    size_gigabytes = 15
 	  }
 	}
+	`, rs, vmHostIdentifier)
+}
+
+func testAccMaasVMHostDeployParams(rs string, vmHostIdentifier string) string {
+	return fmt.Sprintf(`
 	resource "maas_vm_host" "test-vm-host-%s" {
 	  machine = maas_vm_host_machine.test-vm-host-machine-%s.id
 	  type    = "lxd"
@@ -60,7 +65,7 @@ func testAccMaasVMHostDeployParams(vmHostIdentifier string, rs string) string {
 		  user_data        = "#!/bin/bash\necho 'Hello from cloud-init'"
 	  }
 	}
-	`, rs, vmHostIdentifier, rs, rs)
+	`, rs, vmHostIdentifier,)
 }
 
 func testAccCheckMAASVMHostDestroy(s *terraform.State) error {
@@ -85,11 +90,19 @@ func testAccCheckMAASVMHostDestroy(s *terraform.State) error {
 
 		// If the error is a 404 not found error, the VM host is destroyed
 		if err != nil && strings.Contains(err.Error(), "404 Not Found") {
+			machine, err := client.Machine.Get(rs.Primary.Attributes["machine"])
+			if err != nil {
+				return fmt.Errorf("machine %s not found after VM host deletion, with error:\n%s", rs.Primary.Attributes["machine"], err)
+			}
+			if machine.StatusName != "Ready" {
+				return fmt.Errorf("machine %s is not in Ready state after VM host deletion but in state %s", machine.SystemID, machine.StatusName)
+			}
 			continue
 		}
 
 		return err
 	}
+
 
 	return nil
 }
