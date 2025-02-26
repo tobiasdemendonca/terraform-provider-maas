@@ -103,6 +103,5 @@ func testAccCheckMAASVMHostDestroy(s *terraform.State) error {
 		return err
 	}
 
-
 	return nil
 }
