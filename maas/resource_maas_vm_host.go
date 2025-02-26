@@ -81,14 +81,14 @@ func resourceMaasVMHost() *schema.Resource {
 				Optional:    true,
 				ForceNew:    true,
 				MaxItems:    1,
-				Description: "Nested argument with the config used to deploy the allocated machine. Defined below.",
+				Description: "Nested argument with the config used to deploy the machine specified using `machine`.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"distro_series": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							ForceNew:    true,
-							Description: "The distro series used to deploy the allocated MAAS machine. If it's not given, the MAAS server default value is used.",
+							Description: "The distro series used to deploy the specifed MAAS machine. If it's not given, the MAAS server default value is used.",
 						},
 						"enable_hw_sync": {
 							Type:        schema.TypeBool,
