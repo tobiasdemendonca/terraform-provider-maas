@@ -2,7 +2,6 @@ package maas
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -211,7 +210,7 @@ func resourceVMHostCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		// Get parameters for deployment
 		timeout := d.Timeout(schema.TimeoutCreate)
 		vmHostType := d.Get("type").(string)
-		deployParams, err := getVMHostDeployParams(client, d, vmHostType)
+		deployParams, err := getVMHostDeployParams(d, vmHostType)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -396,53 +395,22 @@ func getVMHost(client *client.Client, identifier string) (*entity.VMHost, error)
 	return nil, fmt.Errorf("VM host (%s) not found", identifier)
 }
 
-func getVMHostDeployParams(client *client.Client, d *schema.ResourceData, vmHostType string) (*entity.MachineDeployParams, error) {
-	// Common VM host settings for default and set values
-	vmHostSettings := struct {
-		InstallKVM, RegisterVMHost bool
-	}{
+func getVMHostDeployParams(d *schema.ResourceData, vmHostType string) (*entity.MachineDeployParams, error) {
+	deployParams := entity.MachineDeployParams{
 		InstallKVM:     (vmHostType == "virsh"),
 		RegisterVMHost: (vmHostType == "lxd"),
 	}
 
+	// Set deploy params if given
 	if p, ok := d.GetOk("deploy_params"); ok {
 		deployParamsData := p.([]interface{})
 		if deployParamsData[0] != nil {
-			deployParams := deployParamsData[0].(map[string]interface{})
-			return &entity.MachineDeployParams{
-				DistroSeries:   deployParams["distro_series"].(string),
-				EnableHwSync:   deployParams["enable_hw_sync"].(bool),
-				HWEKernel:      deployParams["hwe_kernel"].(string),
-				UserData:       base64Encode([]byte(deployParams["user_data"].(string))),
-				InstallKVM:     vmHostSettings.InstallKVM,
-				RegisterVMHost: vmHostSettings.RegisterVMHost,
-			}, nil
+			params := deployParamsData[0].(map[string]interface{})
+			deployParams.DistroSeries = params["distro_series"].(string)
+			deployParams.EnableHwSync = params["enable_hw_sync"].(bool)
+			deployParams.HWEKernel = params["hwe_kernel"].(string)
+			deployParams.UserData = base64Encode([]byte(params["user_data"].(string)))
 		}
-	}
-	// Otherwise, use the default values for OS and series
-	var defaultOsystem string
-	defaultOsystemBytes, err := client.MAASServer.Get("default_osystem")
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(defaultOsystemBytes, &defaultOsystem)
-	if err != nil {
-		return nil, err
-	}
-	var defaultSeries string
-	defaultSeriesBytes, err := client.MAASServer.Get("default_distro_series")
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(defaultSeriesBytes, &defaultSeries)
-	if err != nil {
-		return nil, err
-	}
-
-	deployParams := entity.MachineDeployParams{
-		DistroSeries:   fmt.Sprintf("%s/%s", defaultOsystem, defaultSeries),
-		InstallKVM:     vmHostSettings.InstallKVM,
-		RegisterVMHost: vmHostSettings.RegisterVMHost,
 	}
 
 	return &deployParams, nil
