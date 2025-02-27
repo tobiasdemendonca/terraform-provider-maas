@@ -47,7 +47,7 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
 						t.Fatalf("Failed to unmarshal defaultDistroSeries: %s", err)
 					}
 				},
-				Config: testAccMaasVMHostDeployParams(rs, vmHostIdentifier, defaultOS, defaultDistroSeries),
+				Config: testAccMaasVMHostDeployParams(rs, vmHostIdentifier),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "type", "lxd"),
 					resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "machine", vmHostIdentifier),
@@ -59,7 +59,7 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
 	})
 }
 
-func testAccMaasVMHostDeployParams(rs string, vmHostIdentifier string, defaultOS string, defaultDistroSeries string) string {
+func testAccMaasVMHostDeployParams(rs string, vmHostIdentifier string) string {
 	return fmt.Sprintf(`
 	resource "maas_vm_host_machine" "test-vm-host-machine-%s" {
 	  vm_host = %q
