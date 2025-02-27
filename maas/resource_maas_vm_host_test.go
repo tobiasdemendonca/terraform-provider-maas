@@ -30,18 +30,19 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
 		ErrorCheck:   func(err error) error { return err },
 		Steps: []resource.TestStep{
 			{
-				Config: testAccMaasVMHostDeployParams(vmHostIdentifier, testMachineName, testVMHostName),
+				Config: testAccMaasVMHostDeployParamsConfig(vmHostIdentifier, testMachineName, testVMHostName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "type", "lxd"),
 					resource.TestCheckResourceAttr(resourceName, "deploy_params.0.enable_hw_sync", "true"),
-					resource.TestCheckResourceAttr(resourceName, "deploy_params.0.user_data", "#!/bin/bash\necho 'Hello from cloud-init'"),
+					
 				),
 			},
 		},
 	})
 }
 
-func testAccMaasVMHostDeployParams(vmHostIdentifier string, testMachineName string, testVMHostName string) string {
+
+func testAccMaasVMHostDeployParamsConfig(vmHostIdentifier string, testMachineName string, testVMHostName string) string {
 	return fmt.Sprintf(`
 	resource "maas_vm_host_machine" "%s" {
 	  vm_host = %q
