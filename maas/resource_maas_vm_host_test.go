@@ -76,7 +76,6 @@ func checkMaasVMHostExists(t *testing.T, resourceName string) resource.TestCheck
 	}
 }
 
-
 func testAccMaasVMHostDeployParamsConfig(vmHostIdentifier string, testMachineName string, testVMHostName string) string {
 	return fmt.Sprintf(`
 	resource "maas_vm_host_machine" "%s" {
