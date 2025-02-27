@@ -25,7 +25,7 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
 	var defaultDistroSeries string
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testutils.PreCheck(t, nil) },
+		PreCheck:     func() { testutils.PreCheck(t, []string{"TF_ACC_VM_HOST_ID"}) },
 		Providers:    testutils.TestAccProviders,
 		CheckDestroy: testAccCheckMAASVMHostDestroy,
 		ErrorCheck:   func(err error) error { return err },
@@ -75,12 +75,11 @@ func testAccMaasVMHostDeployParams(rs string, vmHostIdentifier string, defaultOS
 	  type    = "lxd"
 
 	  deploy_params {
-		  distro_series    = "%s/%s"
 		  enable_hw_sync   = true
 		  user_data        = "#!/bin/bash\necho 'Hello from cloud-init'"
 	  }
 	}
-	`, rs, vmHostIdentifier, rs, rs, defaultOS, defaultDistroSeries)
+	`, rs, vmHostIdentifier, rs, rs)
 }
 
 func testAccCheckMAASVMHostDestroy(s *terraform.State) error {
