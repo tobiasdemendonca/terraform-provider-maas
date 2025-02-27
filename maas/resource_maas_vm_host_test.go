@@ -17,7 +17,7 @@ import (
 
 func TestAccMAASVMHost_DeployParams(t *testing.T) {
 	// A VM host identifier. Used to create a VM, which is deployed as a VM host in this test.
-	vmHostIdentifier := os.Getenv("TF_ACC_VM_HOST_MACHINE")
+	vmHostIdentifier := os.Getenv("TF_ACC_VM_HOST_ID")
 	// A random string to be used for test
 	rs := acctest.RandString(8)
 
