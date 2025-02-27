@@ -1,6 +1,7 @@
 package maas_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -32,13 +33,47 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
 			{
 				Config: testAccMaasVMHostDeployParamsConfig(vmHostIdentifier, testMachineName, testVMHostName),
 				Check: resource.ComposeTestCheckFunc(
+					checkMaasVMHostExists(t, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "type", "lxd"),
-					resource.TestCheckResourceAttr(resourceName, "deploy_params.0.enable_hw_sync", "true"),
-					
 				),
 			},
 		},
 	})
+}
+
+func checkMaasVMHostExists(t *testing.T, resourceName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("resource not found: %s", resourceName)
+		}
+		systemID := rs.Primary.Attributes["machine"]
+		client := testutils.TestAccProvider.Meta().(*maas.ClientConfig).Client
+
+		var defaultOS string
+		var defaultDistroSeries string
+
+		defaultOSbytes, err := client.MAASServer.Get("default_osystem")
+		if err != nil {
+			t.Fatalf("Failed to get default OSystem: %s", err)
+		}
+		err = json.Unmarshal(defaultOSbytes, &defaultOS)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal defaultOS: %s", err)
+		}
+		err = json.Unmarshal(defaultOSbytes, &defaultDistroSeries)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal defaultDistroSeries: %s", err)
+		}
+		machine, err := client.Machine.Get(systemID)
+		if err != nil {
+			return err
+		}
+		if machine.DistroSeries != fmt.Sprintf("%s/%s", defaultOS, defaultDistroSeries) {
+			return fmt.Errorf("not expected")
+		}
+		return nil
+	}
 }
 
 
@@ -58,7 +93,6 @@ func testAccMaasVMHostDeployParamsConfig(vmHostIdentifier string, testMachineNam
 	  type    = "lxd"
 
 	  deploy_params {
-		  enable_hw_sync   = true
 		  user_data        = "#!/bin/bash\necho 'Hello from cloud-init'"
 	  }
 	}
