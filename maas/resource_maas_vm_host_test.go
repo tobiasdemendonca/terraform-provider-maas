@@ -1,7 +1,6 @@
 package maas_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -20,9 +19,9 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
 	vmHostIdentifier := os.Getenv("TF_ACC_VM_HOST_ID")
 	// A random string to be used for test
 	rs := acctest.RandString(8)
-
-	var defaultOS string
-	var defaultDistroSeries string
+	testMachineName := fmt.Sprintf("test-vm-host-machine-%s", rs)
+	testVMHostName := fmt.Sprintf("test-vm-host-%s", rs)
+	resourceName := fmt.Sprintf("maas_vm_host.%s", testVMHostName)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testutils.PreCheck(t, []string{"TF_ACC_VM_HOST_ID"}) },
@@ -31,37 +30,20 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
 		ErrorCheck:   func(err error) error { return err },
 		Steps: []resource.TestStep{
 			{
-				PreConfig: func() {
-					// Get the default OS and Distro Series to test against.
-					client := testutils.TestAccProvider.Meta().(*maas.ClientConfig).Client
-					defaultOSbytes, err := client.MAASServer.Get("default_osystem")
-					if err != nil {
-						t.Fatalf("Failed to get default OSystem: %s", err)
-					}
-					err = json.Unmarshal(defaultOSbytes, &defaultOS)
-					if err != nil {
-						t.Fatalf("Failed to unmarshal defaultOS: %s", err)
-					}
-					err = json.Unmarshal(defaultOSbytes, &defaultDistroSeries)
-					if err != nil {
-						t.Fatalf("Failed to unmarshal defaultDistroSeries: %s", err)
-					}
-				},
-				Config: testAccMaasVMHostDeployParams(rs, vmHostIdentifier),
+				Config: testAccMaasVMHostDeployParams(vmHostIdentifier, testMachineName, testVMHostName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "type", "lxd"),
-					resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "machine", vmHostIdentifier),
-					resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "deploy_params.0.distro_series", defaultDistroSeries),
-					resource.TestCheckResourceAttr("maas_vm_host.test-vm-host", "deploy_params.0.enable_hw_sync", "true"),
+					resource.TestCheckResourceAttr(resourceName, "type", "lxd"),
+					resource.TestCheckResourceAttr(resourceName, "deploy_params.0.enable_hw_sync", "true"),
+					resource.TestCheckResourceAttr(resourceName, "deploy_params.0.user_data", "#!/bin/bash\necho 'Hello from cloud-init'"),
 				),
 			},
 		},
 	})
 }
 
-func testAccMaasVMHostDeployParams(rs string, vmHostIdentifier string) string {
+func testAccMaasVMHostDeployParams(vmHostIdentifier string, testMachineName string, testVMHostName string) string {
 	return fmt.Sprintf(`
-	resource "maas_vm_host_machine" "test-vm-host-machine-%s" {
+	resource "maas_vm_host_machine" "%s" {
 	  vm_host = %q
 	  cores   = 1
 	  memory  = 2048
@@ -70,8 +52,8 @@ func testAccMaasVMHostDeployParams(rs string, vmHostIdentifier string) string {
 	    size_gigabytes = 15
 	  }
 	}
-	resource "maas_vm_host" "test-vm-host-%s" {
-	  machine = maas_vm_host_machine.test-vm-host-machine-%s.id
+	resource "maas_vm_host" "%s" {
+	  machine = maas_vm_host_machine.%s.id
 	  type    = "lxd"
 
 	  deploy_params {
@@ -79,7 +61,7 @@ func testAccMaasVMHostDeployParams(rs string, vmHostIdentifier string) string {
 		  user_data        = "#!/bin/bash\necho 'Hello from cloud-init'"
 	  }
 	}
-	`, rs, vmHostIdentifier, rs, rs)
+	`, testMachineName, vmHostIdentifier, testVMHostName, testMachineName)
 }
 
 func testAccCheckMAASVMHostDestroy(s *terraform.State) error {
