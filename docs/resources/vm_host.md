@@ -35,7 +35,7 @@ resource "maas_vm_host" "kvm" {
 
 - `cpu_over_commit_ratio` (Number) The new VM host CPU overcommit ratio. This is computed if it's not set.
 - `default_macvlan_mode` (String) The new VM host default macvlan mode. Supported values are: `bridge`, `passthru`, `private`, `vepa`. This is computed if it's not set.
-- `deploy_params` (Block List, Max: 1) Nested argument with the config used to deploy the allocated machine. Defined below. (see [below for nested schema](#nestedblock--deploy_params))
+- `deploy_params` (Block List, Max: 1) Nested argument with the config used to deploy the machine specified using `machine`. (see [below for nested schema](#nestedblock--deploy_params))
 - `machine` (String) The identifier (hostname, FQDN or system ID) of a registered ready MAAS machine. This is going to be deployed and registered as a new VM host. This argument conflicts with: `power_address`, `power_user`, `power_pass`.
 - `memory_over_commit_ratio` (Number) The new VM host RAM memory overcommit ratio. This is computed if it's not set.
 - `name` (String) The new VM host name. This is computed if it's not set.
@@ -59,7 +59,7 @@ resource "maas_vm_host" "kvm" {
 
 Optional:
 
-- `distro_series` (String) The distro series used to deploy the allocated MAAS machine. If it's not given, the MAAS server default value is used.
+- `distro_series` (String) The distro series used to deploy the specifed MAAS machine. If it's not given, the MAAS server default value is used.
 - `enable_hw_sync` (Boolean) Periodically sync hardware
 - `hwe_kernel` (String) Hardware enablement kernel to use with the image. Only used when deploying Ubuntu.
 - `user_data` (String) Cloud-init user data script that gets run on the machine once it has deployed. A good practice is to set this with `file("/tmp/user-data.txt")`, where `/tmp/user-data.txt` is a cloud-init script.
