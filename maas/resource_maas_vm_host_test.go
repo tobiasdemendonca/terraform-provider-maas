@@ -30,7 +30,10 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
 		CheckDestroy: testAccCheckMAASVMHostDestroy,
 		ErrorCheck:   func(err error) error { return err },
 		Steps: []resource.TestStep{
-			{
+			{	
+				PreConfig: func() {
+					t.Log("PreConfig, about to create VM host machine")
+				},
 				Config: testAccMaasVMHostDeployParamsConfig(vmHostIdentifier, testMachineName, testVMHostName),
 				Check: resource.ComposeTestCheckFunc(
 					checkMaasVMHostExists(t, resourceName),
@@ -43,6 +46,7 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
 
 func checkMaasVMHostExists(t *testing.T, resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
+		t.Log("Checking if VM host exists...")
 		rs, ok := s.RootModule().Resources[resourceName]
 		if !ok {
 			return fmt.Errorf("resource not found: %s", resourceName)
@@ -72,6 +76,7 @@ func checkMaasVMHostExists(t *testing.T, resourceName string) resource.TestCheck
 		if machine.DistroSeries != fmt.Sprintf("%s/%s", defaultOS, defaultDistroSeries) {
 			return fmt.Errorf("not expected")
 		}
+		t.Log("VM host exists!")
 		return nil
 	}
 }
