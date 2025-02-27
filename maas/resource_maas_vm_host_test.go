@@ -19,9 +19,8 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
 	// A VM host identifier. Used to create a VM, which is deployed as a VM host in this test.
 	vmHostIdentifier := os.Getenv("TF_ACC_VM_HOST_MACHINE")
 	// A random string to be used for test
-	rs := acctest.RandString(8)	
+	rs := acctest.RandString(8)
 
-	
 	var defaultOS string
 	var defaultDistroSeries string
 
@@ -31,9 +30,9 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
 		CheckDestroy: testAccCheckMAASVMHostDestroy,
 		ErrorCheck:   func(err error) error { return err },
 		Steps: []resource.TestStep{
-			{	
+			{
 				PreConfig: func() {
-					// Get the default OS and Distro Series to test against. 
+					// Get the default OS and Distro Series to test against.
 					client := testutils.TestAccProvider.Meta().(*maas.ClientConfig).Client
 					defaultOSbytes, err := client.MAASServer.Get("default_osystem")
 					if err != nil {
