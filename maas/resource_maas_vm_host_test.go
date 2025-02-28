@@ -89,7 +89,7 @@ func testAccMaasVMHostDeployParamsConfig(vmHostIdentifier string, testMachineNam
 	  memory  = 2048
 
 	  storage_disks {
-	    size_gigabytes = 15
+	    size_gigabytes = 12
 	  }
 	}
 	resource "maas_vm_host" "%s" {
