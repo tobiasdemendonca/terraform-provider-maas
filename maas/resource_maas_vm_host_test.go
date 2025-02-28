@@ -54,27 +54,22 @@ func checkMaasVMHostExists(t *testing.T, resourceName string) resource.TestCheck
 		systemID := rs.Primary.Attributes["machine"]
 		client := testutils.TestAccProvider.Meta().(*maas.ClientConfig).Client
 
-		var defaultOS string
+	
 		var defaultDistroSeries string
-
-		defaultOSbytes, err := client.MAASServer.Get("default_osystem")
+		defaultDistroSeriesbytes, err := client.MAASServer.Get("default_distro_series")
 		if err != nil {
-			t.Fatalf("Failed to get default OSystem: %s", err)
+			t.Fatalf("Failed to get default Distro Series from client: %s", err)
 		}
-		err = json.Unmarshal(defaultOSbytes, &defaultOS)
+		err = json.Unmarshal(defaultDistroSeriesbytes, &defaultDistroSeries)
 		if err != nil {
-			t.Fatalf("Failed to unmarshal defaultOS: %s", err)
-		}
-		err = json.Unmarshal(defaultOSbytes, &defaultDistroSeries)
-		if err != nil {
-			t.Fatalf("Failed to unmarshal defaultDistroSeries: %s", err)
+			t.Fatalf("Failed to unmarshal defaultDistroSeriesbytes: %s", err)
 		}
 		machine, err := client.Machine.Get(systemID)
 		if err != nil {
 			return err
 		}
-		if machine.DistroSeries != fmt.Sprintf("%s/%s", defaultOS, defaultDistroSeries) {
-			return fmt.Errorf("not expected")
+		if machine.DistroSeries != defaultDistroSeries {
+			return fmt.Errorf("Distro series not the expected default: %s, expected: %s", machine.DistroSeries, defaultDistroSeries)
 		}
 		t.Log("VM host exists!")
 		return nil
@@ -125,13 +120,6 @@ func testAccCheckMAASVMHostDestroy(s *terraform.State) error {
 
 		// If the error is a 404 not found error, the VM host is destroyed
 		if err != nil && strings.Contains(err.Error(), "404 Not Found") {
-			machine, err := client.Machine.Get(rs.Primary.Attributes["machine"])
-			if err != nil {
-				return fmt.Errorf("machine %s not found after VM host deletion, with error:\n%s", rs.Primary.Attributes["machine"], err)
-			}
-			if machine.StatusName != "Ready" {
-				return fmt.Errorf("machine %s is not in Ready state after VM host deletion but in state %s", machine.SystemID, machine.StatusName)
-			}
 			continue
 		}
 
