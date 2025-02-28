@@ -30,7 +30,7 @@ func TestAccMAASVMHost_DeployParams(t *testing.T) {
 		CheckDestroy: testAccCheckMAASVMHostDestroy,
 		ErrorCheck:   func(err error) error { return err },
 		Steps: []resource.TestStep{
-			{	
+			{
 				PreConfig: func() {
 					t.Log("PreConfig, about to create VM host machine")
 				},
@@ -54,7 +54,6 @@ func checkMaasVMHostExists(t *testing.T, resourceName string) resource.TestCheck
 		systemID := rs.Primary.Attributes["machine"]
 		client := testutils.TestAccProvider.Meta().(*maas.ClientConfig).Client
 
-	
 		var defaultDistroSeries string
 		defaultDistroSeriesbytes, err := client.MAASServer.Get("default_distro_series")
 		if err != nil {
