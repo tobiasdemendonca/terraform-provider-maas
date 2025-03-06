@@ -68,12 +68,11 @@ func resourceMaasNetworkInterfaceLink() *schema.Resource {
 func resourceNetworkInterfaceLinkCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ClientConfig).Client
 
-	// Create network interface link
-	machine, err := getMachine(client, d.Get("machine").(string))
+	systemID, err := getMachineOrDeviceSystemID(client, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	networkInterface, err := getNetworkInterface(client, machine.SystemID, d.Get("network_interface").(string))
+	networkInterface, err := getNetworkInterface(client, systemID, d.Get("network_interface").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -81,7 +80,7 @@ func resourceNetworkInterfaceLinkCreate(ctx context.Context, d *schema.ResourceD
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	link, err := createNetworkInterfaceLink(client, machine.SystemID, networkInterface, getNetworkInterfaceLinkParams(d, subnet.ID))
+	link, err := createNetworkInterfaceLink(client, systemID, networkInterface, getNetworkInterfaceLinkParams(d, subnet.ID))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -100,17 +99,17 @@ func resourceNetworkInterfaceLinkRead(ctx context.Context, d *schema.ResourceDat
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	machine, err := getMachine(client, d.Get("machine").(string))
+	systemID, err := getMachineOrDeviceSystemID(client, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	networkInterface, err := getNetworkInterface(client, machine.SystemID, d.Get("network_interface").(string))
+	networkInterface, err := getNetworkInterface(client, systemID, d.Get("network_interface").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	// Get the network interface link
-	link, err := getNetworkInterfaceLink(client, machine.SystemID, networkInterface.ID, linkID)
+	link, err := getNetworkInterfaceLink(client, systemID, networkInterface.ID, linkID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -131,21 +130,21 @@ func resourceNetworkInterfaceLinkUpdate(ctx context.Context, d *schema.ResourceD
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	machine, err := getMachine(client, d.Get("machine").(string))
+	systemID, err := getMachineOrDeviceSystemID(client, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	networkInterface, err := getNetworkInterface(client, machine.SystemID, d.Get("network_interface").(string))
+	networkInterface, err := getNetworkInterface(client, systemID, d.Get("network_interface").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	// Run update operation
-	if _, err := client.Machine.ClearDefaultGateways(machine.SystemID); err != nil {
+	if _, err := client.Machine.ClearDefaultGateways(systemID); err != nil {
 		return diag.FromErr(err)
 	}
 	if d.Get("default_gateway").(bool) {
-		if _, err := client.NetworkInterface.SetDefaultGateway(machine.SystemID, networkInterface.ID, linkID); err != nil {
+		if _, err := client.NetworkInterface.SetDefaultGateway(systemID, networkInterface.ID, linkID); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -161,17 +160,17 @@ func resourceNetworkInterfaceLinkDelete(ctx context.Context, d *schema.ResourceD
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	machine, err := getMachine(client, d.Get("machine").(string))
+	systemID, err := getMachineOrDeviceSystemID(client, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	networkInterface, err := getNetworkInterface(client, machine.SystemID, d.Get("network_interface").(string))
+	networkInterface, err := getNetworkInterface(client, systemID, d.Get("network_interface").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	// Delete the network interface link
-	if err := deleteNetworkInterfaceLink(client, machine.SystemID, networkInterface.ID, linkID); err != nil {
+	if err := deleteNetworkInterfaceLink(client, systemID, networkInterface.ID, linkID); err != nil {
 		return diag.FromErr(err)
 	}
 
