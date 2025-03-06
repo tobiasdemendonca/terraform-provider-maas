@@ -114,7 +114,6 @@ func resourceDeviceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		Description:  d.Get("description").(string),
 		Domain:       d.Get("domain").(string),
 		Hostname:     d.Get("hostname").(string),
-		// NetworkInterfaces: ...
 	}
 
 	device, err := client.Devices.Create(&deviceParams)
@@ -134,7 +133,7 @@ func resourceDeviceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 		Domain:      d.Get("domain").(string),
 		Hostname:    d.Get("hostname").(string),
 		Zone:        d.Get("zone").(string),
-		// MacAddresses: expandNetworkInterfacesItems(d.Get("network_interfaces").(*schema.Set).List()),
+		// NetworkInterfaces: ...
 	}
 
 	device, err := client.Device.Update(d.Id(), &deviceParams)
