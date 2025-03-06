@@ -66,7 +66,7 @@ func resourceMaasNetworkInterfaceLink() *schema.Resource {
 }
 
 func resourceNetworkInterfaceLinkCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	// Create network interface link
 	machineOrDevice, err := getMachineOrDevice(client, d.Get("machine").(string))
@@ -97,7 +97,7 @@ func resourceNetworkInterfaceLinkCreate(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceNetworkInterfaceLinkRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	// Get params for the read operation
 	linkID, err := strconv.Atoi(d.Id())
@@ -132,7 +132,7 @@ func resourceNetworkInterfaceLinkRead(ctx context.Context, d *schema.ResourceDat
 }
 
 func resourceNetworkInterfaceLinkUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	// Get params for the update operation
 	linkID, err := strconv.Atoi(d.Id())
@@ -166,7 +166,7 @@ func resourceNetworkInterfaceLinkUpdate(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceNetworkInterfaceLinkDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	// Get params for the delete operation
 	linkID, err := strconv.Atoi(d.Id())
@@ -205,10 +205,8 @@ func getNetworkInterfaceLinkParams(d *schema.ResourceData, subnetID int) *entity
 
 func createNetworkInterfaceLink(client *client.Client, machineSystemID string, networkInterface *entity.NetworkInterface, params *entity.NetworkInterfaceLinkParams) (*entity.NetworkInterfaceLink, error) {
 	// Clear existing links
-	// VLAN type interfaces are excluded since this action is not allowed by MAAS itself:
-	// <https://github.com/canonical/maas/blob/master/src/maasserver/models/interface.py#L2001-L2006>
-	if networkInterface.Type != "vlan" {
-		_, err := client.NetworkInterface.Disconnect(machineSystemID, networkInterface.ID)
+	for _, link := range networkInterface.Links {
+		_, err := client.NetworkInterface.UnlinkSubnet(machineSystemID, networkInterface.ID, link.ID)
 		if err != nil {
 			return nil, err
 		}

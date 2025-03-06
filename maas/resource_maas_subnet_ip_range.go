@@ -22,7 +22,8 @@ func resourceMaasSubnetIPRange() *schema.Resource {
 		DeleteContext: resourceSubnetIPRangeDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				client := meta.(*client.Client)
+				client := meta.(*ClientConfig).Client
+
 				idParts := strings.Split(d.Id(), ":")
 				var ipRange *entity.IPRange
 				var err error
@@ -93,7 +94,7 @@ func resourceMaasSubnetIPRange() *schema.Resource {
 }
 
 func resourceSubnetIPRangeCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	subnet, err := findSubnet(client, d.Get("subnet").(string))
 	if err != nil {
@@ -109,7 +110,7 @@ func resourceSubnetIPRangeCreate(ctx context.Context, d *schema.ResourceData, me
 }
 
 func resourceSubnetIPRangeRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -120,7 +121,10 @@ func resourceSubnetIPRangeRead(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 	tfState := map[string]interface{}{
-		"comment": ipRange.Comment,
+		"comment":  ipRange.Comment,
+		"type":     ipRange.Type,
+		"start_ip": ipRange.StartIP.String(),
+		"end_ip":   ipRange.EndIP.String(),
 	}
 	if err := setTerraformState(d, tfState); err != nil {
 		return diag.FromErr(err)
@@ -130,7 +134,7 @@ func resourceSubnetIPRangeRead(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func resourceSubnetIPRangeUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -148,7 +152,7 @@ func resourceSubnetIPRangeUpdate(ctx context.Context, d *schema.ResourceData, me
 }
 
 func resourceSubnetIPRangeDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {

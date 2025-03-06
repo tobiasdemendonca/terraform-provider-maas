@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/canonical/gomaasclient/client"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -16,13 +18,13 @@ func Provider() *schema.Provider {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     os.Getenv("MAAS_API_KEY"),
-				Description: "The MAAS API key",
+				Description: "The MAAS API key. If not provided, it will be read from the MAAS_API_KEY environment variable.",
 			},
 			"api_url": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     os.Getenv("MAAS_API_URL"),
-				Description: "The MAAS API URL (eg: http://127.0.0.1:5240/MAAS)",
+				Description: "The MAAS API URL (eg: http://127.0.0.1:5240/MAAS). If not provided, it will be read from the MAAS_API_URL environment variable.",
 			},
 			"api_version": {
 				Type:        schema.TypeString,
@@ -30,10 +32,16 @@ func Provider() *schema.Provider {
 				Default:     "2.0",
 				Description: "The MAAS API version (default 2.0)",
 			},
+			"installation_method": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("MAAS_INSTALLATION_METHOD", "snap"),
+				Description: "The MAAS installation method. Valid options: `snap`, and `deb`.",
+			},
 			"tls_ca_cert_path": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Certificate CA bundle path to use to verify the MAAS certificate.",
+				Description: "Certificate CA bundle path to use to verify the MAAS certificate. If not provided, it will be read from the MAAS_API_CACERT environment variable.",
 				Default:     os.Getenv("MAAS_API_CACERT"),
 			},
 			"tls_insecure_skip_verify": {
@@ -44,6 +52,8 @@ func Provider() *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
+			"maas_boot_source_selection":      resourceMAASBootSourceSelection(),
+			"maas_boot_source":                resourceMAASBootSource(),
 			"maas_device":                     resourceMaasDevice(),
 			"maas_instance":                   resourceMaasInstance(),
 			"maas_vm_host":                    resourceMaasVMHost(),
@@ -65,8 +75,11 @@ func Provider() *schema.Provider {
 			"maas_tag":                        resourceMaasTag(),
 			"maas_user":                       resourceMaasUser(),
 			"maas_resource_pool":              resourceMaasResourcePool(),
+			"maas_zone":                       resourceMaasZone(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
+			"maas_boot_source":                dataSourceMaasBootSource(),
+			"maas_boot_source_selection":      dataSourceMaasBootSourceSelection(),
 			"maas_fabric":                     dataSourceMaasFabric(),
 			"maas_vlan":                       dataSourceMaasVlan(),
 			"maas_subnet":                     dataSourceMaasSubnet(),
@@ -75,9 +88,15 @@ func Provider() *schema.Provider {
 			"maas_device":                     dataSourceMaasDevice(),
 			"maas_resource_pool":              dataSourceMaasResourcePool(),
 			"maas_rack_controller":            dataSourceMaasRackController(),
+			"maas_zone":                       dataSourceMaasZone(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}
+}
+
+type ClientConfig struct {
+	Client             *client.Client
+	InstallationMethod string
 }
 
 func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -110,5 +129,5 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		return nil, diags
 	}
 
-	return c, diags
+	return &ClientConfig{Client: c, InstallationMethod: d.Get("installation_method").(string)}, diags
 }

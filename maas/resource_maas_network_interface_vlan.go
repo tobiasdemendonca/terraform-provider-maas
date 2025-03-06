@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/canonical/gomaasclient/client"
 	"github.com/canonical/gomaasclient/entity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -47,6 +46,12 @@ func resourceMaasNetworkInterfaceVlan() *schema.Resource {
 				Computed:    true,
 				Description: "The MTU of the VLAN interface.",
 			},
+			"name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The name of the VLAN interface.",
+			},
 			"parent": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -63,8 +68,8 @@ func resourceMaasNetworkInterfaceVlan() *schema.Resource {
 			},
 			"vlan": {
 				Type:        schema.TypeInt,
-				Optional:    true,
-				Computed:    true,
+				Required:    true,
+				ForceNew:    true,
 				Description: "Database ID of the VLAN the VLAN interface is connected to.",
 			},
 		},
@@ -72,7 +77,7 @@ func resourceMaasNetworkInterfaceVlan() *schema.Resource {
 }
 
 func resourceNetworkInterfaceVlanCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	machine, err := getMachine(client, d.Get("machine").(string))
 	if err != nil {
@@ -105,7 +110,7 @@ func resourceNetworkInterfaceVlanCreate(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceNetworkInterfaceVlanRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	machine, err := getMachine(client, d.Get("machine").(string))
 	if err != nil {
@@ -131,6 +136,7 @@ func resourceNetworkInterfaceVlanRead(ctx context.Context, d *schema.ResourceDat
 
 	tfState := map[string]interface{}{
 		"mtu":    networkInterface.EffectiveMTU,
+		"name":   networkInterface.Name,
 		"parent": networkInterface.Parents[0],
 		"tags":   networkInterface.Tags,
 		"vlan":   networkInterface.VLAN.ID,
@@ -146,7 +152,7 @@ func resourceNetworkInterfaceVlanRead(ctx context.Context, d *schema.ResourceDat
 }
 
 func resourceNetworkInterfaceVlanUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	machine, err := getMachine(client, d.Get("machine").(string))
 	if err != nil {
@@ -182,7 +188,7 @@ func resourceNetworkInterfaceVlanUpdate(ctx context.Context, d *schema.ResourceD
 	return resourceNetworkInterfaceVlanRead(ctx, d, meta)
 }
 func resourceNetworkInterfaceVlanDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	machine, err := getMachine(client, d.Get("machine").(string))
 	if err != nil {

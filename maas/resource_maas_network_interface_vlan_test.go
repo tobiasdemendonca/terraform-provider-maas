@@ -5,19 +5,19 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"terraform-provider-maas/maas"
 	"terraform-provider-maas/maas/testutils"
 	"testing"
 
-	"github.com/canonical/gomaasclient/client"
 	"github.com/canonical/gomaasclient/entity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func testAccMaasNetworkInterfaceVLAN(machine string, fabric string, mtu int) string {
+func testAccMaasNetworkInterfaceVLAN(machine string, mac_adrress_phys string, mtu int) string {
 	return fmt.Sprintf(`
-data "maas_fabric" "default" {
-	name = "%s"
+resource "maas_fabric" "default" {
+	name = "tf-fabric-vlan"
 }
 
 data "maas_machine" "machine" {
@@ -25,19 +25,19 @@ data "maas_machine" "machine" {
 }
 
 data "maas_vlan" "default" {
-	fabric = data.maas_fabric.default.id
+	fabric = maas_fabric.default.id
 	vlan   = 0
 }
 
 resource "maas_vlan" "tf_vlan" {
-	fabric = data.maas_fabric.default.id
+	fabric = maas_fabric.default.id
 	vid    = 42
 	name   = "tf-vlan-42"
 }
 
 resource "maas_network_interface_physical" "nic1" {
 	machine     = data.maas_machine.machine.id
-	mac_address = "52:54:00:15:f5:42"
+	mac_address = "%s"
 	name        = "bond0"
 	vlan        = data.maas_vlan.default.id
 }
@@ -45,20 +45,20 @@ resource "maas_network_interface_physical" "nic1" {
 resource "maas_network_interface_vlan" "test" {
 	machine   = data.maas_machine.machine.id
 	accept_ra = false
-	fabric    = data.maas_fabric.default.id
+	fabric    = maas_fabric.default.id
 	mtu       = %d
 	parent    = maas_network_interface_physical.nic1.name
 	tags      = ["tag1", "tag2"]
 	vlan      = maas_vlan.tf_vlan.id
-  }
-  `, fabric, machine, mtu)
+}
+  `, machine, mac_adrress_phys, mtu)
 }
 
 func TestAccResourceMaasNetworkInterfaceVLAN_basic(t *testing.T) {
 
 	var networkInterfaceVLAN entity.NetworkInterface
 	machine := os.Getenv("TF_ACC_NETWORK_INTERFACE_MACHINE")
-	fabric := os.Getenv("TF_ACC_FABRIC")
+	mac_adrress_phys := testutils.RandomMAC()
 
 	checks := []resource.TestCheckFunc{
 		testAccMaasNetworkInterfaceVLANCheckExists("maas_network_interface_vlan.test", &networkInterfaceVLAN),
@@ -71,19 +71,19 @@ func TestAccResourceMaasNetworkInterfaceVLAN_basic(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testutils.PreCheck(t, []string{"TF_ACC_NETWORK_INTERFACE_MACHINE", "TF_ACC_FABRIC"}) },
+		PreCheck:     func() { testutils.PreCheck(t, []string{"TF_ACC_NETWORK_INTERFACE_MACHINE"}) },
 		Providers:    testutils.TestAccProviders,
 		CheckDestroy: testAccCheckMaasNetworkInterfaceVLANDestroy,
 		ErrorCheck:   func(err error) error { return err },
 		Steps: []resource.TestStep{
 			{
-				Config: testAccMaasNetworkInterfaceVLAN(machine, fabric, 1500),
+				Config: testAccMaasNetworkInterfaceVLAN(machine, mac_adrress_phys, 1500),
 				Check: resource.ComposeTestCheckFunc(
 					append(checks, resource.TestCheckResourceAttr("maas_network_interface_vlan.test", "mtu", "1500"))...),
 			},
 			// Test update
 			{
-				Config: testAccMaasNetworkInterfaceVLAN(machine, fabric, 9000),
+				Config: testAccMaasNetworkInterfaceVLAN(machine, mac_adrress_phys, 9000),
 				Check: resource.ComposeTestCheckFunc(
 					append(checks, resource.TestCheckResourceAttr("maas_network_interface_vlan.test", "mtu", "9000"))...),
 			},
@@ -119,7 +119,7 @@ func testAccMaasNetworkInterfaceVLANCheckExists(rn string, networkInterfaceVLAN 
 			return fmt.Errorf("resource id not set")
 		}
 
-		conn := testutils.TestAccProvider.Meta().(*client.Client)
+		conn := testutils.TestAccProvider.Meta().(*maas.ClientConfig).Client
 		id, err := strconv.Atoi(rs.Primary.ID)
 		if err != nil {
 			return err
@@ -137,7 +137,7 @@ func testAccMaasNetworkInterfaceVLANCheckExists(rn string, networkInterfaceVLAN 
 
 func testAccCheckMaasNetworkInterfaceVLANDestroy(s *terraform.State) error {
 	// retrieve the connection established in Provider configuration
-	conn := testutils.TestAccProvider.Meta().(*client.Client)
+	conn := testutils.TestAccProvider.Meta().(*maas.ClientConfig).Client
 
 	// loop through the resources in state, verifying each maas_network_interface_vlan
 	// is destroyed
