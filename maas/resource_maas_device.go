@@ -114,6 +114,7 @@ func resourceDeviceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		Description:  d.Get("description").(string),
 		Domain:       d.Get("domain").(string),
 		Hostname:     d.Get("hostname").(string),
+		MacAddresses: expandNetworkInterfacesItems(d.Get("network_interfaces").(*schema.Set).List()),
 	}
 
 	device, err := client.Devices.Create(&deviceParams)
