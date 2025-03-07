@@ -25,6 +25,7 @@ func resourceMaasNetworkInterfaceLink() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
+				ConflictsWith: []string{"device"},
 				Description: "Boolean value. When enabled, it sets the subnet gateway IP address as the default gateway for the machine the interface belongs to. This option can only be used with the `AUTO` and `STATIC` modes. Defaults to `false`.",
 			},
 			"ip_address": {
@@ -40,6 +41,12 @@ func resourceMaasNetworkInterfaceLink() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				Description: "The identifier (system ID, hostname, or FQDN) of the machine with the network interface.",
+			},
+			"device": {
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The identifier (system ID, hostname, or FQDN) of the device with the network interface.",
 			},
 			"mode": {
 				Type:             schema.TypeString,
