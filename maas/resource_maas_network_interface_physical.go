@@ -27,11 +27,7 @@ func resourceMaasNetworkInterfacePhysical() *schema.Resource {
 				}
 				client := meta.(*ClientConfig).Client
 
-				machine, err := getMachine(client, idParts[0])
-				if err != nil {
-					return nil, err
-				}
-				systemID, err := getSystemID(machineOrDevice)
+				systemID, err := getMachineOrDeviceSystemID(client, d)
 				if err != nil {
 					return nil, err
 				}
