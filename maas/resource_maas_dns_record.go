@@ -8,6 +8,7 @@ import (
 
 	"github.com/canonical/gomaasclient/client"
 	"github.com/canonical/gomaasclient/entity"
+	"github.com/hashicorp/go-set/v2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -34,7 +35,8 @@ func resourceMaasDnsRecord() *schema.Resource {
 				if _, errors := validation.StringInSlice(validDnsRecordTypes, false)(resourceType, "type"); len(errors) > 0 {
 					return nil, errors[0]
 				}
-				client := meta.(*client.Client)
+				client := meta.(*ClientConfig).Client
+
 				resourceIdentifier := idParts[1]
 				var tfState map[string]interface{}
 				if resourceType == "A/AAAA" {
@@ -115,7 +117,7 @@ func resourceMaasDnsRecord() *schema.Resource {
 }
 
 func resourceDnsRecordCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	var resourceID int
 	if d.Get("type").(string) == "A/AAAA" {
@@ -137,7 +139,7 @@ func resourceDnsRecordCreate(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func resourceDnsRecordRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -157,7 +159,7 @@ func resourceDnsRecordRead(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func resourceDnsRecordUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -177,7 +179,7 @@ func resourceDnsRecordUpdate(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func resourceDnsRecordDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -191,10 +193,8 @@ func resourceDnsRecordDelete(ctx context.Context, d *schema.ResourceData, meta i
 		if err := client.DNSResource.Delete(id); err != nil {
 			return diag.FromErr(err)
 		}
-		for _, ipAddress := range dnsResource.IPAddresses {
-			if err := client.IPAddresses.Release(&entity.IPAddressesParams{IP: ipAddress.IP.String()}); err != nil {
-				return diag.FromErr(err)
-			}
+		if err := releaseDNSResourceIPAddresses(client, dnsResource, id); err != nil {
+			return diag.FromErr(err)
 		}
 	} else {
 		if err := client.DNSResourceRecord.Delete(id); err != nil {
@@ -202,6 +202,35 @@ func resourceDnsRecordDelete(ctx context.Context, d *schema.ResourceData, meta i
 		}
 	}
 
+	return nil
+}
+
+// Release all IP addresses of a DNS resource, but only if it is not used by other DNS resources.
+func releaseDNSResourceIPAddresses(client *client.Client, dnsResource *entity.DNSResource, dnsID int) error {
+	allDNSResources, err := client.DNSResources.Get(&entity.DNSResourcesParams{})
+	if err != nil {
+		return err
+	}
+	allOtherDNSResourcesIPAddresses := set.New[string](0)
+	for _, r := range allDNSResources {
+		if r.ID == dnsID {
+			continue
+		}
+		for _, ipAddress := range r.IPAddresses {
+			allOtherDNSResourcesIPAddresses.Insert(ipAddress.IP.String())
+		}
+	}
+	for _, ipAddress := range dnsResource.IPAddresses {
+		if allOtherDNSResourcesIPAddresses.Contains(ipAddress.IP.String()) {
+			continue
+		}
+		// Release the IP address if it is not used by another DNS resource.
+		// Terraform removes resources in parallel, so if it's already been deleted
+		// by another resource pointing to the same IP being removed, ignore it.
+		if err := client.IPAddresses.Release(&entity.IPAddressesParams{IP: ipAddress.IP.String()}); err != nil && !strings.Contains(err.Error(), "does not exist") {
+			return err
+		}
+	}
 	return nil
 }
 

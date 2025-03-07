@@ -3,7 +3,6 @@ package maas
 import (
 	"context"
 
-	"github.com/canonical/gomaasclient/client"
 	"github.com/canonical/gomaasclient/entity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -18,7 +17,8 @@ func resourceMaasDevice() *schema.Resource {
 		DeleteContext: resourceDeviceDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				client := meta.(*client.Client)
+				client := meta.(*ClientConfig).Client
+
 				device, err := getDevice(client, d.Id())
 				if err != nil {
 					return nil, err
@@ -108,7 +108,7 @@ func expandNetworkInterfacesItems(items []interface{}) []string {
 }
 
 func resourceDeviceCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	deviceParams := entity.DeviceCreateParams{
 		Description:  d.Get("description").(string),
@@ -127,13 +127,14 @@ func resourceDeviceCreate(ctx context.Context, d *schema.ResourceData, meta inte
 }
 
 func resourceDeviceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	deviceParams := entity.DeviceUpdateParams{
 		Description: d.Get("description").(string),
 		Domain:      d.Get("domain").(string),
 		Hostname:    d.Get("hostname").(string),
 		Zone:        d.Get("zone").(string),
+		// NetworkInterfaces: ...
 	}
 
 	device, err := client.Device.Update(d.Id(), &deviceParams)
@@ -146,12 +147,13 @@ func resourceDeviceUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 }
 
 func resourceDeviceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
+
 	return diag.FromErr(client.Device.Delete(d.Id()))
 }
 
 func resourceDeviceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	device, err := getDevice(client, d.Id())
 	if err != nil {

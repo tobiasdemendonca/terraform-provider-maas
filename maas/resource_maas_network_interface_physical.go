@@ -25,8 +25,9 @@ func resourceMaasNetworkInterfacePhysical() *schema.Resource {
 				if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
 					return nil, fmt.Errorf("unexpected format of ID (%q), expected MACHINE/NETWORK_INTERFACE", d.Id())
 				}
-				client := meta.(*client.Client)
-				machineOrDevice, err := getMachineOrDevice(client, idParts[0])
+				client := meta.(*ClientConfig).Client
+
+				machine, err := getMachine(client, idParts[0])
 				if err != nil {
 					return nil, err
 				}
@@ -53,9 +54,15 @@ func resourceMaasNetworkInterfacePhysical() *schema.Resource {
 			},
 			"machine": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				ForceNew:    true,
-				Description: "The identifier (system ID, hostname, or FQDN) of the machine with the physical network interface.",
+				Description: "The identifier (system ID, hostname, or FQDN) of the machine with the physical network interface. Either `machine` or `device` is required.",
+			},
+			"device": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "The identifier (system ID, hostname, or FQDN) of the device with the physical network interface. Either `machine` or `device` is required.",
 			},
 			"mtu": {
 				Type:        schema.TypeInt,
@@ -89,16 +96,13 @@ func resourceMaasNetworkInterfacePhysical() *schema.Resource {
 }
 
 func resourceNetworkInterfacePhysicalCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
-	machineOrDevice, err := getMachineOrDevice(client, d.Get("machine").(string))
+	systemID, err := getMachineOrDeviceSystemID(client, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	systemID, err := getSystemID(machineOrDevice)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+
 	networkInterface, err := findNetworkInterfacePhysical(client, systemID, d.Get("mac_address").(string))
 	if err != nil {
 		return diag.FromErr(err)
@@ -129,16 +133,13 @@ func resourceNetworkInterfacePhysicalCreate(ctx context.Context, d *schema.Resou
 }
 
 func resourceNetworkInterfacePhysicalRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
-	machineOrDevice, err := getMachineOrDevice(client, d.Get("machine").(string))
+	systemID, err := getMachineOrDeviceSystemID(client, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	systemID, err := getSystemID(machineOrDevice)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -163,21 +164,18 @@ func resourceNetworkInterfacePhysicalRead(ctx context.Context, d *schema.Resourc
 }
 
 func resourceNetworkInterfacePhysicalUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
-	machineOrDevice, err := getMachineOrDevice(client, d.Get("machine").(string))
+	systemID, err := getMachineOrDeviceSystemID(client, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	systemID, err := getSystemID(machineOrDevice)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
+	
 	networkInterface, err := client.NetworkInterface.Update(systemID, id, getNetworkInterfaceUpdateParams(d))
 	if err != nil {
 		return diag.FromErr(err)
@@ -198,13 +196,9 @@ func resourceNetworkInterfacePhysicalUpdate(ctx context.Context, d *schema.Resou
 }
 
 func resourceNetworkInterfacePhysicalDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
-	machineOrDevice, err := getMachineOrDevice(client, d.Get("machine").(string))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	systemID, err := getSystemID(machineOrDevice)
+	systemID, err := getMachineOrDeviceSystemID(client, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
