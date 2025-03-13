@@ -44,6 +44,13 @@ func resourceMaasInstance() *schema.Resource {
 				Description: "Nested argument with the constraints used to machine allocation. Defined below.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"architecture": {
+							Type:        schema.TypeString,
+							ForceNew:    true,
+							Optional:    true,
+							Default:     "amd64/generic",
+							Description: "The architecture type of the machine. Defaults to `amd64/generic`.",
+						},
 						"hostname": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -93,6 +100,11 @@ func resourceMaasInstance() *schema.Resource {
 						},
 					},
 				},
+			},
+			"architecture": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The the deployed MAAS machine architecture.",
 			},
 			"cpu_count": {
 				Type:        schema.TypeInt,
@@ -266,6 +278,7 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, meta inte
 		ipAddresses[i] = ip.String()
 	}
 	tfState := map[string]interface{}{
+		"architecture": machine.Architecture,
 		"fqdn":         machine.FQDN,
 		"hostname":     machine.Hostname,
 		"zone":         machine.Zone.Name,
@@ -306,6 +319,7 @@ func getMachinesAllocateParams(d *schema.ResourceData) *entity.MachineAllocatePa
 		if allocateParamsData[0] != nil {
 			allocateParams := allocateParamsData[0].(map[string]interface{})
 			return &entity.MachineAllocateParams{
+				Arch:     allocateParams["architecture"].(string),
 				CPUCount: allocateParams["min_cpu_count"].(int),
 				Mem:      int64(allocateParams["min_memory"].(int)),
 				Name:     allocateParams["hostname"].(string),
