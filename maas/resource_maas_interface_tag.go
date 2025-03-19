@@ -4,16 +4,17 @@ import (
 	"context"
 	"fmt"
 	"slices"
-
+	"strconv"
 	// "github.com/canonical/gomaasclient/client"
 	// "github.com/canonical/gomaasclient/entity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"strings"
 )
 
 func resourceMaasInterfaceTag() *schema.Resource {
 	return &schema.Resource{
-		Description:   "Provides a resource to manage a MAAS tag as a string.",
+		Description:   "Provides a resource to manage a MAAS tags as strings on a network interface not managed by Terraform.",
 		CreateContext: resourceInterfaceTagCreate,
 		ReadContext:   resourceInterfaceTagRead,
 		UpdateContext: resourceInterfaceTagUpdate,
@@ -56,7 +57,7 @@ func resourceInterfaceTagCreate(ctx context.Context, d *schema.ResourceData, met
 
 	interfaceId := d.Get("interface_id ").(int)
 	desiredTags := convertToStringSlice(d.Get("tags").(*schema.Set).List())
-	systemId, err := getMachineOrDeviceSystemID(client, d)
+	systemId, _, err := getSystemIDFromInterfaceMap(client, d.Get("device").(map[string]interface{}))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -90,20 +91,79 @@ func resourceInterfaceTagCreate(ctx context.Context, d *schema.ResourceData, met
 }
 
 func resourceInterfaceTagRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
+	systemId, interfaceId, err := splitTagStateId(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	// Get the existing interface
+	existingInterface, err := client.NetworkInterface.Get(systemId, interfaceId)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	// Set the tags in state
+	d.Set("tags", existingInterface.Tags)
 	
 	return nil
+}
+
+// Split the state ID of a tag in the format system_id:interface_id into its component ids, where system_id is the system ID of the machine or device, and interface_id is the ID of the network interface.
+func splitTagStateId(stateId string) (string, int, error) {
+	splitId := strings.SplitN(stateId, ":", 2)
+	if len(splitId) != 2 {
+		return "", 0, fmt.Errorf("invalid resource ID: %s", stateId)
+	}
+	interfaceId, err := strconv.Atoi(splitId[1])
+	if err != nil {
+		return "", 0, err
+	}
+	return splitId[0], interfaceId, nil
 }
 
 func resourceInterfaceTagUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// Add tags if not present
-	// Since name is ForceNew, there's nothing to update in our dummy implementation
-	return nil
+	client := meta.(*ClientConfig).Client
+	systemId, interfaceId, err := splitTagStateId(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	// Get the existing interface
+	existingInterface, err := client.NetworkInterface.Get(systemId, interfaceId)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	existingTags := existingInterface.Tags
+	desiredTags := convertToStringSlice(d.Get("tags").(*schema.Set).List())
+
+	// Remove tags that are not in the desired set
+	for _, tag := range existingTags {
+		if !slices.Contains(desiredTags, tag) {
+			client.NetworkInterface.RemoveTag(systemId, interfaceId, tag)
+		} 
+	}
+
+	// Add tags that are in the desired set. AddTag will not add duplicates.
+	for _, tag := range desiredTags {
+		client.NetworkInterface.AddTag(systemId, interfaceId, tag)
+	}
+	return resourceInterfaceTagRead(ctx, d, meta)
 }
 
 func resourceInterfaceTagDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	
-	// In a real implementation, we would delete from MAAS
-	// For testing, we just let Terraform remove it from state
+	client := meta.(*ClientConfig).Client
+	systemId, interfaceId, err := splitTagStateId(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	tags := convertToStringSlice(d.Get("tags").(*schema.Set).List())
+	for _, t := range tags {
+		_, err := client.NetworkInterface.RemoveTag(systemId, interfaceId, t)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
 	d.SetId("")
 	return nil
 }

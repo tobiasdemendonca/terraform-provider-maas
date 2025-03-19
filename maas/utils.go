@@ -123,44 +123,21 @@ func setTerraformState(d *schema.ResourceData, tfState map[string]interface{}) e
 }
 
 // Get the system ID of the relevant entity from resource data that accepts either a `machine` or `device`.
-func getMachineOrDeviceSystemID(client *client.Client, d *schema.ResourceData) (string, error) {
+func getMachineOrDeviceSystemID(client *client.Client, d *schema.ResourceData) (string, string, error) {
 	if d.Get("machine") != "" {
 		machine, err := getMachine(client, d.Get("machine").(string))
 		if err != nil && !strings.Contains(err.Error(), "404 Not Found") {
-			return "", err
+			return "", "", err
 		}
-		return machine.SystemID, nil
+		return machine.SystemID, "machine", nil
 	}
 
 	if d.Get("device") != "" {
 		device, err := getDevice(client, d.Get("device").(string))
 		if err != nil && !strings.Contains(err.Error(), "404 Not Found") {
-			return "", err
+			return "", "", err
 		}
-		return device.SystemID, nil
+		return device.SystemID, "device", nil
 	}
-	return "", fmt.Errorf("either `machine` or `device` is required")
-}
-
-// A wrapper around getMachineOrDeviceSystemID that accepts a map[string]interface{} for nested resources.
-func getSystemIDFromInterfaceMap(client *client.Client, ifaceMap map[string]interface{}) (string, error) {
-    // Create a temporary schema
-    tempSchema := map[string]*schema.Schema{
-        "machine": {Type: schema.TypeString, Optional: true},
-        "device":  {Type: schema.TypeString, Optional: true},
-    }
-    
-    // Create a temporary ResourceData
-    r := schema.Resource{Schema: tempSchema}
-    d := r.Data(nil)
-    
-    // Set the values
-    if machine, ok := ifaceMap["machine"]; ok {
-        d.Set("machine", machine)
-    }
-    if device, ok := ifaceMap["device"]; ok {
-        d.Set("device", device)
-    }
-    
-    return getMachineOrDeviceSystemID(client, d)
+	return "", "", fmt.Errorf("either `machine` or `device` is required")
 }
