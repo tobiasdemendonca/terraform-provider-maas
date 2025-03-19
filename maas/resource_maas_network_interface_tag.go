@@ -94,7 +94,7 @@ func resourceNetworkInterfaceTagCreate(ctx context.Context, d *schema.ResourceDa
 
 func resourceNetworkInterfaceTagRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ClientConfig).Client
-	systemId, interfaceId, err := splitTagStateId(d.Id())
+	systemId, interfaceId, err := SplitTagStateId(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -111,22 +111,9 @@ func resourceNetworkInterfaceTagRead(ctx context.Context, d *schema.ResourceData
 	return nil
 }
 
-// Split the state ID of a tag in the format system_id:interface_id into its component ids, where system_id is the system ID of the machine or device, and interface_id is the ID of the network interface.
-func splitTagStateId(stateId string) (string, int, error) {
-	splitId := strings.SplitN(stateId, ":", 2)
-	if len(splitId) != 2 {
-		return "", 0, fmt.Errorf("invalid resource ID: %s", stateId)
-	}
-	interfaceId, err := strconv.Atoi(splitId[1])
-	if err != nil {
-		return "", 0, err
-	}
-	return splitId[0], interfaceId, nil
-}
-
 func resourceNetworkInterfaceTagUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ClientConfig).Client
-	systemId, interfaceId, err := splitTagStateId(d.Id())
+	systemId, interfaceId, err := SplitTagStateId(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -135,15 +122,15 @@ func resourceNetworkInterfaceTagUpdate(ctx context.Context, d *schema.ResourceDa
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
+	
 	existingTags := existingInterface.Tags
 	desiredTags := convertToStringSlice(d.Get("tags").(*schema.Set).List())
-
+	
 	// Remove tags that are not in the desired set
 	for _, tag := range existingTags {
 		if !slices.Contains(desiredTags, tag) {
 			client.NetworkInterface.RemoveTag(systemId, interfaceId, tag)
-		} 
+			} 
 	}
 
 	// Add tags that are in the desired set. AddTag will not add duplicates.
@@ -155,7 +142,7 @@ func resourceNetworkInterfaceTagUpdate(ctx context.Context, d *schema.ResourceDa
 
 func resourceNetworkInterfaceTagDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ClientConfig).Client
-	systemId, interfaceId, err := splitTagStateId(d.Id())
+	systemId, interfaceId, err := SplitTagStateId(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -170,4 +157,15 @@ func resourceNetworkInterfaceTagDelete(ctx context.Context, d *schema.ResourceDa
 	return nil
 }
 
-
+// Split the state ID of a tag in the format system_id:interface_id into its component ids, where system_id is the system ID of the machine or device, and interface_id is the ID of the network interface.
+func SplitTagStateId(stateId string) (string, int, error) {
+	splitId := strings.SplitN(stateId, ":", 2)
+	if len(splitId) != 2 {
+		return "", 0, fmt.Errorf("invalid resource ID: %s", stateId)
+	}
+	interfaceId, err := strconv.Atoi(splitId[1])
+	if err != nil {
+		return "", 0, err
+	}
+	return splitId[0], interfaceId, nil
+}
