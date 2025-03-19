@@ -14,13 +14,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceMaasInterfaceTag() *schema.Resource {
+func resourceMaasNetworkInterfaceTag() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Provides a resource to manage a MAAS tags as strings on a network interface not managed by Terraform.",
-		CreateContext: resourceInterfaceTagCreate,
-		ReadContext:   resourceInterfaceTagRead,
-		UpdateContext: resourceInterfaceTagUpdate,
-		DeleteContext: resourceInterfaceTagDelete,
+		CreateContext: resourceNetworkInterfaceTagCreate,
+		ReadContext:   resourceNetworkInterfaceTagRead,
+		UpdateContext: resourceNetworkInterfaceTagUpdate,
+		DeleteContext: resourceNetworkInterfaceTagDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				return []*schema.ResourceData{d}, nil // TODO: implement
@@ -54,7 +54,7 @@ func resourceMaasInterfaceTag() *schema.Resource {
 	}
 }
 
-func resourceInterfaceTagCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceNetworkInterfaceTagCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ClientConfig).Client
 
 	interfaceId := d.Get("interface_id ").(int)
@@ -89,10 +89,10 @@ func resourceInterfaceTagCreate(ctx context.Context, d *schema.ResourceData, met
 	d.SetId(fmt.Sprintf("%v:%v", systemId, interfaceId))
 
 	// Read the resource to update state
-	return resourceInterfaceTagRead(ctx, d, meta)
+	return resourceNetworkInterfaceTagRead(ctx, d, meta)
 }
 
-func resourceInterfaceTagRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceNetworkInterfaceTagRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ClientConfig).Client
 	systemId, interfaceId, err := splitTagStateId(d.Id())
 	if err != nil {
@@ -124,7 +124,7 @@ func splitTagStateId(stateId string) (string, int, error) {
 	return splitId[0], interfaceId, nil
 }
 
-func resourceInterfaceTagUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceNetworkInterfaceTagUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ClientConfig).Client
 	systemId, interfaceId, err := splitTagStateId(d.Id())
 	if err != nil {
@@ -150,10 +150,10 @@ func resourceInterfaceTagUpdate(ctx context.Context, d *schema.ResourceData, met
 	for _, tag := range desiredTags {
 		client.NetworkInterface.AddTag(systemId, interfaceId, tag)
 	}
-	return resourceInterfaceTagRead(ctx, d, meta)
+	return resourceNetworkInterfaceTagRead(ctx, d, meta)
 }
 
-func resourceInterfaceTagDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceNetworkInterfaceTagDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ClientConfig).Client
 	systemId, interfaceId, err := splitTagStateId(d.Id())
 	if err != nil {
