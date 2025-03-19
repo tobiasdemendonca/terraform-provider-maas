@@ -57,7 +57,7 @@ func resourceMaasNetworkInterfaceTag() *schema.Resource {
 func resourceNetworkInterfaceTagCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ClientConfig).Client
 
-	interfaceId := d.Get("interface_id ").(int)
+	interfaceId := d.Get("interface_id").(int)
 	desiredTags := convertToStringSlice(d.Get("tags").(*schema.Set).List())
 	systemId, err := getMachineOrDeviceSystemID(client, d)
 	if err != nil {
