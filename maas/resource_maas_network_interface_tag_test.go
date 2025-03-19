@@ -30,6 +30,7 @@ func TestAccNetworkInterfaceTag(t *testing.T) {
 	macAddress := testutils.RandomMAC()
 	tagName := acctest.RandomWithPrefix("tag")
 	tagName2 := acctest.RandomWithPrefix("tag2")
+	tagName3 := acctest.RandomWithPrefix("tag3")
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testutils.PreCheck(t, nil) },
 		Providers:         testutils.TestAccProviders,
@@ -38,27 +39,29 @@ func TestAccNetworkInterfaceTag(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
-				Config: testAccMaasNetworkInterfaceTagConfig(hostname, macAddress, tagName),
+				Config: testAccMaasNetworkInterfaceTagConfig(hostname, macAddress, tagName, tagName2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckMaasNetworkInterfaceTagExists("maas_network_interface_tag.test"),
-					resource.TestCheckResourceAttr("maas_network_interface_tag.test", "tags.#", "1"),
+					resource.TestCheckResourceAttr("maas_network_interface_tag.test", "tags.#", "2"),
 					resource.TestCheckResourceAttr("maas_network_interface_tag.test", "tags.0", tagName),
+					resource.TestCheckResourceAttr("maas_network_interface_tag.test", "tags.1", tagName2),
 				),
 			},
 			// Test update. Expected behaviour is that the previous tag is removed and the new tag is added.
 			{
-				Config: testAccMaasNetworkInterfaceTagConfig(hostname, macAddress, tagName2),
+				Config: testAccMaasNetworkInterfaceTagConfig(hostname, macAddress, tagName2, tagName3),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckMaasNetworkInterfaceTagExists("maas_network_interface_tag.test"),
-					resource.TestCheckResourceAttr("maas_network_interface_tag.test", "tags.#", "1"),
+					resource.TestCheckResourceAttr("maas_network_interface_tag.test", "tags.#", "2"),
 					resource.TestCheckResourceAttr("maas_network_interface_tag.test", "tags.0", tagName2),
+					resource.TestCheckResourceAttr("maas_network_interface_tag.test", "tags.1", tagName3),
 				),
 			},
 		},
 	})
 }
 
-func testAccMaasNetworkInterfaceTagConfig(hostname, macAddress, tagName string) string {
+func testAccMaasNetworkInterfaceTagConfig(hostname, macAddress string, tagNames ...string) string {
 	return fmt.Sprintf(`
 resource "maas_device" "test" {
   hostname = %q
@@ -70,10 +73,10 @@ resource "maas_device" "test" {
 resource "maas_network_interface_tag" "test" {
   device = maas_device.test.id
   interface_id = [for iface in maas_device.test.network_interfaces : iface.id if iface.mac_address == %q][0]
-  tags = [%q]
+  tags = %s
 }
-	`,hostname, macAddress, macAddress, tagName)
-}
+	`,hostname, macAddress, macAddress, fmt.Sprintf("[\"%s\"]", strings.Join(tagNames, "\", \"")))
+} 
 
 func testAccCheckMaasNetworkInterfaceTagExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
