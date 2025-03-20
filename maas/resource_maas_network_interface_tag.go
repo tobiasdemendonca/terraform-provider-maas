@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -30,7 +30,7 @@ func resourceMaasNetworkInterfaceTag() *schema.Resource {
 				existingInterface, err := client.NetworkInterface.Get(systemId, interfaceId)
 				if err != nil {
 					return nil, err
-				}	
+				}
 				// Infer the type of the relevant entity from the system ID. Makes calls to MAAS.
 				entityType, err := getMachineOrDeviceTypeFromSystemID(client, systemId)
 				if err != nil {
@@ -65,7 +65,7 @@ func resourceMaasNetworkInterfaceTag() *schema.Resource {
 			"interface_id": {
 				Type:        schema.TypeInt,
 				Required:    true,
-				ForceNew:     true,
+				ForceNew:    true,
 				Description: "The network interface ID to tag.",
 			},
 			"tags": {
@@ -101,7 +101,7 @@ func resourceNetworkInterfaceTagCreate(ctx context.Context, d *schema.ResourceDa
 	for _, tag := range existingInterface.Tags {
 		if !slices.Contains(desiredTags, tag) {
 			client.NetworkInterface.RemoveTag(systemId, interfaceId, tag)
-		} 
+		}
 	}
 
 	// Add tags that are in the desired set. AddTag will not add duplicates.
@@ -118,11 +118,11 @@ func resourceNetworkInterfaceTagCreate(ctx context.Context, d *schema.ResourceDa
 
 func resourceNetworkInterfaceTagRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ClientConfig).Client
-	
+
 	systemId, interfaceId, err := SplitTagStateId(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
-	}	// Get the existing interface
+	} // Get the existing interface
 	existingInterface, err := client.NetworkInterface.Get(systemId, interfaceId)
 	if err != nil {
 		return diag.FromErr(err)
@@ -146,15 +146,15 @@ func resourceNetworkInterfaceTagUpdate(ctx context.Context, d *schema.ResourceDa
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	
+
 	existingTags := existingInterface.Tags
 	desiredTags := convertToStringSlice(d.Get("tags").(*schema.Set).List())
-	
+
 	// Remove tags that are not in the specified set
 	for _, tag := range existingTags {
 		if !slices.Contains(desiredTags, tag) {
 			client.NetworkInterface.RemoveTag(systemId, interfaceId, tag)
-			} 
+		}
 	}
 
 	// Add tags that are in the specified set. AddTag will not add duplicates.

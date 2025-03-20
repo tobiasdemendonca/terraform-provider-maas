@@ -5,13 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"terraform-provider-maas/maas"
-	"terraform-provider-maas/maas/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"terraform-provider-maas/maas"
+	"terraform-provider-maas/maas/testutils"
 )
-
 
 func TestSplitTagStateId(t *testing.T) {
 	expectedSystemId := "acb123"
@@ -33,10 +32,10 @@ func TestAccNetworkInterfaceTag(t *testing.T) {
 	tagName2 := acctest.RandomWithPrefix("tag2")
 	tagName3 := acctest.RandomWithPrefix("tag3")
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { testutils.PreCheck(t, nil) },
-		Providers:         testutils.TestAccProviders,
-		ErrorCheck:        func(err error) error { return err },
-		CheckDestroy:      testAccCheckMaasNetworkInterfaceDestroy,
+		PreCheck:     func() { testutils.PreCheck(t, nil) },
+		Providers:    testutils.TestAccProviders,
+		ErrorCheck:   func(err error) error { return err },
+		CheckDestroy: testAccCheckMaasNetworkInterfaceDestroy,
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
@@ -45,7 +44,7 @@ func TestAccNetworkInterfaceTag(t *testing.T) {
 					testAccCheckMaasNetworkInterfaceTagExists("maas_network_interface_tag.test"),
 					resource.TestCheckResourceAttr("maas_network_interface_tag.test", "tags.#", "2"),
 					resource.TestCheckTypeSetElemAttr("maas_network_interface_tag.test", "tags.*", tagName),
-            		resource.TestCheckTypeSetElemAttr("maas_network_interface_tag.test", "tags.*", tagName2),
+					resource.TestCheckTypeSetElemAttr("maas_network_interface_tag.test", "tags.*", tagName2),
 				),
 			},
 			// Test update. Expected behaviour is that the previous tag is removed and the new tag is added.
@@ -60,8 +59,8 @@ func TestAccNetworkInterfaceTag(t *testing.T) {
 			},
 			// Test import.
 			{
-				ResourceName: "maas_network_interface_tag.test",
-				ImportState: true,
+				ResourceName:      "maas_network_interface_tag.test",
+				ImportState:       true,
 				ImportStateVerify: true,
 			},
 		},
@@ -82,8 +81,8 @@ resource "maas_network_interface_tag" "test" {
   interface_id = [for iface in maas_device.test.network_interfaces : iface.id if iface.mac_address == %q][0]
   tags = %s
 }
-	`,hostname, macAddress, macAddress, fmt.Sprintf("[\"%s\"]", strings.Join(tagNames, "\", \"")))
-} 
+	`, hostname, macAddress, macAddress, fmt.Sprintf("[\"%s\"]", strings.Join(tagNames, "\", \"")))
+}
 
 func testAccCheckMaasNetworkInterfaceTagExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
