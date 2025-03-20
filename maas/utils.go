@@ -141,3 +141,13 @@ func getMachineOrDeviceSystemID(client *client.Client, d *schema.ResourceData) (
 	}
 	return "", fmt.Errorf("either `machine` or `device` is required")
 }
+
+func getMachineOrDeviceType(d *schema.ResourceData) string {
+	if d.Get("machine") != "" {
+		return "machine"
+	}
+	if d.Get("device") != "" {
+		return "device"
+	}
+	return ""
+}

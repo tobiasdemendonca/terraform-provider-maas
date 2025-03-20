@@ -2,6 +2,7 @@ package maas_test
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -12,11 +13,24 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+// Split the state ID of a tag in the format system_id:interface_id into its component ids, where system_id is the system ID of the machine or device, and interface_id is the ID of the network interface.
+func SplitTagStateId(stateId string) (string, int, error) {
+	splitId := strings.SplitN(stateId, ":", 2)
+	if len(splitId) != 2 {
+		return "", 0, fmt.Errorf("invalid resource ID: %s", stateId)
+	}
+	interfaceId, err := strconv.Atoi(splitId[1])
+	if err != nil {
+		return "", 0, err
+	}
+	return splitId[0], interfaceId, nil
+}
+
 func TestSplitTagStateId(t *testing.T) {
 	expectedSystemId := "acb123"
 	expectedInterfaceId := 12
 	stateId := fmt.Sprintf("%s:%d", expectedSystemId, expectedInterfaceId)
-	systemId, interfaceId, err := maas.SplitTagStateId(stateId)
+	systemId, interfaceId, err := SplitTagStateId(stateId)
 	if err != nil {
 		t.Fatalf("Error splitting state ID: %s", err)
 	}
@@ -57,6 +71,12 @@ func TestAccNetworkInterfaceTag(t *testing.T) {
 					resource.TestCheckResourceAttr("maas_network_interface_tag.test", "tags.1", tagName3),
 				),
 			},
+			// // Test import.
+			// {
+			// 	ResourceName: "maas_network_interface_tag.test",
+			// 	ImportState: true,
+			// 	ImportStateVerify: true,
+			// },
 		},
 	})
 }
@@ -71,7 +91,7 @@ resource "maas_device" "test" {
 }
 
 resource "maas_network_interface_tag" "test" {
-  device = maas_device.test.id
+  device = maas_device.test.hostname
   interface_id = [for iface in maas_device.test.network_interfaces : iface.id if iface.mac_address == %q][0]
   tags = %s
 }
@@ -84,10 +104,11 @@ func testAccCheckMaasNetworkInterfaceTagExists(resourceName string) resource.Tes
 		if !ok {
 			return fmt.Errorf("Not found: %s", resourceName)
 		}
-		systemId, interfaceId, err := maas.SplitTagStateId(rs.Primary.ID)
+		systemId, interfaceId, err := SplitTagStateId(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
+
 		conn := testutils.TestAccProvider.Meta().(*maas.ClientConfig).Client
 		response, err := conn.NetworkInterface.Get(systemId, interfaceId)
 		if err != nil {
@@ -110,10 +131,11 @@ func testAccCheckMaasNetworkInterfaceDestroy(s *terraform.State) error {
 		}
 
 		// Retrieve the system and interface ID from the state ID
-		systemId, interfaceId, err := maas.SplitTagStateId(rs.Primary.ID)
+		systemId, interfaceId, err := SplitTagStateId(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
+
 		// Check the interface doesn't exist
 		response, err := conn.NetworkInterface.Get(systemId, interfaceId)
 		if err == nil {
