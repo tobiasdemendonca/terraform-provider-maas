@@ -75,7 +75,7 @@ func resourceMaasNetworkInterfaceTag() *schema.Resource {
 			"tags": {
 				Type:        schema.TypeSet,
 				Required:    true,
-				Description: "The tags to assign to the network interface. It should be short and without spaces.",
+				Description: "The tags to assign to the network interface. Tag names should be short and without spaces.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 		},
