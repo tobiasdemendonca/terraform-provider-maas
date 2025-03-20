@@ -48,6 +48,12 @@ func resourceMaasNetworkInterfaceTag() *schema.Resource {
 			},
 		},
 		Schema: map[string]*schema.Schema{
+			"interface_id": {
+				Type:        schema.TypeInt,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The network interface ID to tag.",
+			},
 			"device": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -61,12 +67,6 @@ func resourceMaasNetworkInterfaceTag() *schema.Resource {
 				ForceNew:     true,
 				ExactlyOneOf: []string{"machine", "device"},
 				Description:  "The identifier (system ID, hostname, or FQDN) of the machine with the network interface. Either `machine` or `device` must be provided.",
-			},
-			"interface_id": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The network interface ID to tag.",
 			},
 			"tags": {
 				Type:        schema.TypeSet,
