@@ -38,9 +38,13 @@ func resourceMaasNetworkInterfaceTag() *schema.Resource {
 				}
 				// Set the machine or device in state, set once.
 				if entityType == "machine" {
-					d.Set("machine", existingInterface.SystemID)
+					if err := d.Set("machine", existingInterface.SystemID); err != nil {
+						return nil, err
+					}
 				} else {
-					d.Set("device", existingInterface.SystemID)
+					if err := d.Set("device", existingInterface.SystemID); err != nil {
+						return nil, err
+					}
 				}
 				// Set the resource ID
 				d.SetId(fmt.Sprintf("%v:%v", existingInterface.SystemID, existingInterface.ID))
@@ -128,8 +132,12 @@ func resourceNetworkInterfaceTagRead(ctx context.Context, d *schema.ResourceData
 		return diag.FromErr(err)
 	}
 	// Set the tags in state
-	d.Set("tags", existingInterface.Tags)
-	d.Set("interface_id", interfaceId)
+	if err := d.Set("tags", existingInterface.Tags); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("interface_id", interfaceId); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
