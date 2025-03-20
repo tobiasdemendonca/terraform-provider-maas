@@ -27,8 +27,31 @@ func TestAccBlockDeviceTag_basic(t *testing.T) {
 		ErrorCheck:   func(err error) error { return err },
 		CheckDestroy: testAccCheckMaasBlockDeviceTagDestroy,
 		Steps: []resource.TestStep{
+			// Test create.
 			{
-				Config: testAccBlockDeviceTagConfig(machine, blockDeviceName, tagName, tagName2, tagName3),
+				Config: testAccBlockDeviceTagConfig(machine, blockDeviceName, tagName, tagName2),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckMaasBlockDeviceTagExists("maas_block_device_tag.test"),
+					resource.TestCheckResourceAttr("maas_block_device_tag.test", "tags.#", "2"),
+					resource.TestCheckTypeSetElemAttr("maas_block_device_tag.test", "tags.*", tagName),
+					resource.TestCheckTypeSetElemAttr("maas_block_device_tag.test", "tags.*", tagName2),
+				),
+			},
+			// Test update. Expected behaviour is that the previous tag is removed and the new tag is added.
+			{
+				Config: testAccBlockDeviceTagConfig(machine, blockDeviceName, tagName2, tagName3),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckMaasBlockDeviceTagExists("maas_block_device_tag.test"),
+					resource.TestCheckResourceAttr("maas_block_device_tag.test", "tags.#", "2"),
+					resource.TestCheckTypeSetElemAttr("maas_block_device_tag.test", "tags.*", tagName2),
+					resource.TestCheckTypeSetElemAttr("maas_block_device_tag.test", "tags.*", tagName3),
+				),
+			},
+			// Test import
+			{
+				ResourceName: "maas_block_device_tag.test",
+				ImportState:  true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -56,6 +79,31 @@ resource "maas_block_device_tag" "test" {
 	`, hostname, name, fmt.Sprintf("[\"%s\"]", strings.Join(tagNames, "\", \"")))
 }
 
+func testAccCheckMaasBlockDeviceTagExists(resourceName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Not found: %s", resourceName)
+		}
+		systemId, blockDeviceId, err := maas.SplitTagStateId(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		conn := testutils.TestAccProvider.Meta().(*maas.ClientConfig).Client
+		blockDevice, err := conn.BlockDevice.Get(systemId, blockDeviceId)
+		if err != nil {
+			return err
+		}
+
+		// Check the block device is the one expected
+		if blockDevice.ID != blockDeviceId {
+			return fmt.Errorf("MAAS Block Device (%v) ID mismatch: expected %v, got %v.", blockDevice.ID, blockDeviceId, blockDevice.ID)
+		}
+
+		return nil
+	}
+}
 
 func testAccCheckMaasBlockDeviceTagDestroy(s *terraform.State) error {
 	conn := testutils.TestAccProvider.Meta().(*maas.ClientConfig).Client

@@ -18,7 +18,18 @@ func resourceMaasBlockDeviceTag() *schema.Resource {
 		DeleteContext: resourceBlockDeviceTagDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				return nil, nil //TODO
+				systemID, blockDeviceID, err := SplitTagStateId(d.Id())
+				if err != nil {
+					return nil, err
+				}
+				client := meta.(*ClientConfig).Client
+				blockDevice, err := client.BlockDevice.Get(systemID, blockDeviceID)
+				if err != nil {
+					return nil, err
+				}
+
+				d.SetId(fmt.Sprintf("%v:%v", blockDevice.SystemID, blockDevice.ID))
+				return []*schema.ResourceData{d}, nil
 			},
 		},
 		Schema: map[string]*schema.Schema{
@@ -95,11 +106,16 @@ func resourceBlockDeviceTagRead(ctx context.Context, d *schema.ResourceData, met
 		return diag.FromErr(err)
 	}
 
-	// Set the tags in state
+	// Set the attributes in state
 	if err := d.Set("tags", blockDevice.Tags); err != nil {
 		return diag.FromErr(err)
 	}
-
+	if err := d.Set("machine", blockDevice.SystemID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("block_device_id", blockDevice.ID); err != nil {
+		return diag.FromErr(err)
+	}
 	return nil
 }
 
@@ -141,7 +157,7 @@ func resourceBlockDeviceTagDelete(ctx context.Context, d *schema.ResourceData, m
 	systemID := d.Get("machine").(string)
 	blockDeviceID := d.Get("block_device_id").(int)
 
-	// Remove all tags that were specified in the resource
+	// Remove all tags specified
 	desiredTags := convertToStringSlice(d.Get("tags").(*schema.Set).List())
 	for _, tag := range desiredTags {
 		_, err := client.BlockDevice.RemoveTag(systemID, blockDeviceID, tag)
