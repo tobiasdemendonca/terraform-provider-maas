@@ -3,12 +3,12 @@
 page_title: "maas_network_interface_tag Resource - terraform-provider-maas"
 subcategory: ""
 description: |-
-  Provides a resource to manage a MAAS tags as strings on a network interface not managed by Terraform. It is highly recommended to not use this resource to manage tags on network interfaces managed by Terraform. For that, use the nested tags attribute on resources such as maas_network_interface_physical.
+  Provides a resource to manage a MAAS tags as strings on a network interface not managed by Terraform. It is highly recommended to not use this resource to manage tags on network interfaces managed by Terraform, as this will cause conflicts and will overwrite the tags already set. Use the nested tags attribute on resources such as maas_network_interface_physical if you need to manage tags on network interfaces managed by Terraform.
 ---
 
 # maas_network_interface_tag (Resource)
 
-Provides a resource to manage a MAAS tags as strings on a network interface not managed by Terraform. It is highly recommended to not use this resource to manage tags on network interfaces managed by Terraform. For that, use the nested `tags` attribute on resources such as `maas_network_interface_physical`.
+Provides a resource to manage a MAAS tags as strings on a network interface not managed by Terraform. It is highly recommended to not use this resource to manage tags on network interfaces managed by Terraform, as this will cause conflicts and will overwrite the tags already set. Use the nested `tags` attribute on resources such as `maas_network_interface_physical` if you need to manage tags on network interfaces managed by Terraform.
 
 
 
