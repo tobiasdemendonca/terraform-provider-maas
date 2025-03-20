@@ -13,7 +13,7 @@ import (
 
 func resourceMaasNetworkInterfaceTag() *schema.Resource {
 	return &schema.Resource{
-		Description:   "Provides a resource to manage a MAAS tags as strings on a network interface not managed by Terraform.",
+		Description:   "Provides a resource to manage a MAAS tags as strings on a network interface not managed by Terraform. It is highly recommended to not use this resource to manage tags on network interfaces managed by Terraform. For that, use the nested `tags` attribute on resources such as `maas_network_interface_physical`.",
 		CreateContext: resourceNetworkInterfaceTagCreate,
 		ReadContext:   resourceNetworkInterfaceTagRead,
 		UpdateContext: resourceNetworkInterfaceTagUpdate,
