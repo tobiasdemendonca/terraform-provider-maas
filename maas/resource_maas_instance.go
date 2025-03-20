@@ -104,7 +104,7 @@ func resourceMaasInstance() *schema.Resource {
 			"architecture": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The the deployed MAAS machine architecture.",
+				Description: "The deployed MAAS machine architecture.",
 			},
 			"cpu_count": {
 				Type:        schema.TypeInt,
