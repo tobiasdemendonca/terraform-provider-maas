@@ -36,12 +36,11 @@ func resourceMaasNetworkInterfaceTag() *schema.Resource {
 				if err != nil {
 					return nil, err
 				}
+				// Set the machine or device in state, set once and required for update.
 				if entityType == "machine" {
 					d.Set("machine", existingInterface.SystemID)
-					// d.Set("device", "")
 				} else {
 					d.Set("device", existingInterface.SystemID)
-					// d.Set("machine", "")
 				}
 				// Set the resource ID
 				d.SetId(fmt.Sprintf("%v:%v", existingInterface.SystemID, existingInterface.ID))
