@@ -25,7 +25,7 @@ func TestSplitTagStateId(t *testing.T) {
 	}
 }
 
-func TestAccNetworkInterfaceTag(t *testing.T) {
+func TestAccNetworkInterfaceTag_basic(t *testing.T) {
 	hostname := acctest.RandomWithPrefix("tf")
 	macAddress := testutils.RandomMAC()
 	tagName := acctest.RandomWithPrefix("tag")
