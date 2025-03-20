@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -16,36 +18,36 @@ func resourceMaasNetworkInterfaceTag() *schema.Resource {
 		ReadContext:   resourceNetworkInterfaceTagRead,
 		UpdateContext: resourceNetworkInterfaceTagUpdate,
 		DeleteContext: resourceNetworkInterfaceTagDelete,
-		// Importer: &schema.ResourceImporter{
-		// 	StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-		// 		client := meta.(*ClientConfig).Client
-
-		// 		systemId, err := getMachineOrDeviceSystemID(client, d)
-		// 		if err != nil {
-		// 			return nil, err
-		// 		}
-		// 		interfaceId := d.Get("interface_id").(int)
-
-		// 		// Gets the existing interface, thereby ensuring that the node and interface exists.
-		// 		existingInterface, err := client.NetworkInterface.Get(systemId, interfaceId)
-		// 		if err != nil {
-		// 			return nil, err
-		// 		}
-		// 		existingTags := existingInterface.Tags
-
-		// 		tfState := map[string]interface{}{
-		// 			"id":       fmt.Sprintf("%s:%d", systemId, interfaceId),
-		// 			"interface_id": interfaceId,
-		// 			"tags":     existingTags,
-		// 			"machine": d.Get("machine").(string),
-		// 			"device": d.Get("device").(string),
-		// 		}
-		// 		if err := setTerraformState(d, tfState); err != nil {
-		// 			return nil, err
-		// 		}
-		// 		return []*schema.ResourceData{d}, nil
-		// 	},
-		// },
+		Importer: &schema.ResourceImporter{
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				client := meta.(*ClientConfig).Client
+				// Get the system ID and interface ID from the user inputted resource ID
+				systemId, interfaceId, err := SplitTagStateId(d.Id())
+				if err != nil {
+					return nil, err
+				}
+				// Gets the existing interface, thereby ensuring that the node and interface exists.
+				existingInterface, err := client.NetworkInterface.Get(systemId, interfaceId)
+				if err != nil {
+					return nil, err
+				}	
+				// Infer the type of the relevant entity from the system ID. Makes calls to MAAS.
+				entityType, err := getMachineOrDeviceTypeFromSystemID(client, systemId)
+				if err != nil {
+					return nil, err
+				}
+				if entityType == "machine" {
+					d.Set("machine", existingInterface.SystemID)
+					// d.Set("device", "")
+				} else {
+					d.Set("device", existingInterface.SystemID)
+					// d.Set("machine", "")
+				}
+				// Set the resource ID
+				d.SetId(fmt.Sprintf("%v:%v", existingInterface.SystemID, existingInterface.ID))
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 		Schema: map[string]*schema.Schema{
 			"device": {
 				Type:         schema.TypeString,
@@ -118,23 +120,17 @@ func resourceNetworkInterfaceTagCreate(ctx context.Context, d *schema.ResourceDa
 func resourceNetworkInterfaceTagRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ClientConfig).Client
 	
-	systemId, err := getMachineOrDeviceSystemID(client, d)
+	systemId, interfaceId, err := SplitTagStateId(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
-	}
-	interfaceId := d.Get("interface_id").(int)
-
-	// Get the existing interface
+	}	// Get the existing interface
 	existingInterface, err := client.NetworkInterface.Get(systemId, interfaceId)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
 	// Set the tags in state
 	d.Set("tags", existingInterface.Tags)
 	d.Set("interface_id", interfaceId)
-	d.Set("machine", d.Get("machine").(string))
-	d.Set("device", d.Get("device").(string))
 
 	return nil
 }
@@ -185,4 +181,17 @@ func resourceNetworkInterfaceTagDelete(ctx context.Context, d *schema.ResourceDa
 	}
 	d.SetId("")
 	return nil
+}
+
+// Split the state ID of a tag in the format system_id:interface_id into its component ids, where system_id is the system ID of the machine or device, and interface_id is the ID of the network interface.
+func SplitTagStateId(stateId string) (string, int, error) {
+	splitId := strings.SplitN(stateId, ":", 2)
+	if len(splitId) != 2 {
+		return "", 0, fmt.Errorf("invalid resource ID: %s", stateId)
+	}
+	interfaceId, err := strconv.Atoi(splitId[1])
+	if err != nil {
+		return "", 0, err
+	}
+	return splitId[0], interfaceId, nil
 }
