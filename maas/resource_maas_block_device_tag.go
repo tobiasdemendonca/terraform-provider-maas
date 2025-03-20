@@ -11,7 +11,7 @@ import (
 
 func resourceMaasBlockDeviceTag() *schema.Resource {
 	return &schema.Resource{
-		Description: "Provides a resource to manage tags as strings on a block device that is not managed by Terraform. It is highly recommended to not use this resource to manage tags on block devices that are already managed by Terraform, as this will cause conflicts and will overwrite the tags already set. Use the nested `tags` attribute on the resource `maas_block_device` if you need to to do this.",
+		Description:   "Provides a resource to manage tags as strings on a block device that is not managed by Terraform. It is highly recommended to not use this resource to manage tags on block devices that are already managed by Terraform, as this will cause conflicts and will overwrite the tags already set. Use the nested `tags` attribute on the resource `maas_block_device` if you need to to do this.",
 		CreateContext: resourceBlockDeviceTagCreate,
 		ReadContext:   resourceBlockDeviceTagRead,
 		UpdateContext: resourceBlockDeviceTagUpdate,
@@ -40,10 +40,10 @@ func resourceMaasBlockDeviceTag() *schema.Resource {
 				Description: "The block device ID to tag.",
 			},
 			"machine": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "The identifier (system ID, hostname, or FQDN) of the machine with the network interface.",
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The identifier (system ID, hostname, or FQDN) of the machine with the network interface.",
 			},
 			"tags": {
 				Type:        schema.TypeSet,
@@ -60,7 +60,7 @@ func resourceBlockDeviceTagCreate(ctx context.Context, d *schema.ResourceData, m
 
 	machine, err := getMachine(client, d.Get("machine").(string))
 	if err != nil {
-		return diag.FromErr(err)	
+		return diag.FromErr(err)
 	}
 	blockDeviceId := d.Get("block_device_id").(int)
 	blockDevice, err := getBlockDevice(client, machine.SystemID, fmt.Sprintf("%v", blockDeviceId))
@@ -68,7 +68,7 @@ func resourceBlockDeviceTagCreate(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	// Remove existing tags 
+	// Remove existing tags
 	desiredTags := convertToStringSlice(d.Get("tags").(*schema.Set).List())
 	existingTags := blockDevice.Tags
 	for _, tag := range existingTags {
@@ -95,7 +95,7 @@ func resourceBlockDeviceTagCreate(ctx context.Context, d *schema.ResourceData, m
 
 func resourceBlockDeviceTagRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ClientConfig).Client
-	
+
 	// Get the existing block device
 	systemID, blockDeviceID, err := SplitTagStateId(d.Id())
 	if err != nil {
@@ -128,7 +128,7 @@ func resourceBlockDeviceTagUpdate(ctx context.Context, d *schema.ResourceData, m
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	
+
 	// Remove undesired tags
 	desiredTags := convertToStringSlice(d.Get("tags").(*schema.Set).List())
 	existingTags := blockDevice.Tags

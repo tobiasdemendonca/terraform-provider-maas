@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"testing"
 	"terraform-provider-maas/maas"
+	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -49,8 +49,8 @@ func TestAccBlockDeviceTag_basic(t *testing.T) {
 			},
 			// Test import
 			{
-				ResourceName: "maas_block_device_tag.test",
-				ImportState:  true,
+				ResourceName:      "maas_block_device_tag.test",
+				ImportState:       true,
 				ImportStateVerify: true,
 			},
 		},
