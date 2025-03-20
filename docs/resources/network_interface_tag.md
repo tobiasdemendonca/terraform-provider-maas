@@ -18,7 +18,7 @@ Provides a resource to manage a MAAS tags as strings on a network interface not 
 ### Required
 
 - `interface_id` (Number) The network interface ID to tag.
-- `tags` (Set of String) The tags to assign to the network interface. It should be short and without spaces.
+- `tags` (Set of String) The tags to assign to the network interface. Tag names should be short and without spaces.
 
 ### Optional
 
