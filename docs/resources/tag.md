@@ -3,12 +3,12 @@
 page_title: "maas_tag Resource - terraform-provider-maas"
 subcategory: ""
 description: |-
-  Provides a resource to manage a MAAS tag.
+  Provides a resource to manage a MAAS tag. These tags can be used to tag machines or devices.
 ---
 
 # maas_tag (Resource)
 
-Provides a resource to manage a MAAS tag.
+Provides a resource to manage a MAAS tag. These tags can be used to tag machines or devices.
 
 ## Example Usage
 
