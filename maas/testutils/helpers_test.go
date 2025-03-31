@@ -16,17 +16,17 @@ func TestGenerateRandomNumberInRange(t *testing.T) {
 		if result < min || result > max {
 			t.Errorf("Generated number %d is less than minimum %d or greater than maximum %d", result, min, max)
 		}
-		
+
 	}
 }
 
 func TestGetNetworkPrefixFromCidr(t *testing.T) {
 	tests := []struct {
-		input string
+		input  string
 		output string
-	} {
+	}{
 		{"192.168.1.0/24", "192.168.1"},
-        {"10.0.0.0/8", "10.0.0"},
+		{"10.0.0.0/8", "10.0.0"},
 	}
 
 	for _, test := range tests {

@@ -1,11 +1,11 @@
 package testutils
 
 import (
-	"math/rand"
 	"fmt"
-	"time"
 	"log"
+	"math/rand"
 	"strings"
+	"time"
 )
 
 // RandomMAC generates a random locally administered MAC address.
@@ -33,8 +33,8 @@ func GenerateRandomCidr() string {
 	// Arbitrary minIpRange to ensure the CIDR generated doesn't conflict with any existing MAAS networks
 	minIpRange := 50
 	maxIpRange := 255
-	
-	cidr := fmt.Sprintf("10.%d.%d.0/24", generateRandomNumberInRange(minIpRange, maxIpRange) , generateRandomNumberInRange(minIpRange, maxIpRange))
+
+	cidr := fmt.Sprintf("10.%d.%d.0/24", generateRandomNumberInRange(minIpRange, maxIpRange), generateRandomNumberInRange(minIpRange, maxIpRange))
 	return cidr
 }
 
