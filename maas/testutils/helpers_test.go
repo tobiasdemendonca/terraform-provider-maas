@@ -20,6 +20,23 @@ func TestGenerateRandomNumberInRange(t *testing.T) {
 	}
 }
 
+func TestGetNetworkPrefixFromCidr(t *testing.T) {
+	tests := []struct {
+		input string
+		output string
+	} {
+		{"192.168.1.0/24", "192.168.1"},
+        {"10.0.0.0/8", "10.0.0"},
+	}
+
+	for _, test := range tests {
+		prefix := GetNetworkPrefixFromCidr(test.input)
+		if prefix != test.output {
+			t.Errorf("Prefix should be %s, got %s", test.output, prefix)
+		}
+	}
+}
+
 func TestGenerateRandomCidr(t *testing.T) {
 	cidr := GenerateRandomCidr()
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 	"log"
+	"strings"
 )
 
 // RandomMAC generates a random locally administered MAC address.
@@ -35,6 +36,11 @@ func GenerateRandomCidr() string {
 	
 	cidr := fmt.Sprintf("10.%d.%d.0/24", generateRandomNumberInRange(minIpRange, maxIpRange) , generateRandomNumberInRange(minIpRange, maxIpRange))
 	return cidr
+}
+
+// Returns the network prefix from a CIDR. For example 10.77.77.0/24 would return 10.77.77
+func GetNetworkPrefixFromCidr(cidr string) string {
+	return strings.Join(strings.Split(cidr, ".")[:3], ".")
 }
 
 func generateRandomNumberInRange(min int, max int) int {
