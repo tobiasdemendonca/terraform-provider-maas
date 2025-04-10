@@ -36,7 +36,7 @@ func resourceMaasVlanDHCP() *schema.Resource {
 			"ip_ranges": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "A set of IP range ids to server DHCP to. IP ranges must be of type dynamic.",
+				Description: "A set of IP range ids to serve DHCP to. IP ranges must be of type dynamic.",
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
@@ -46,21 +46,21 @@ func resourceMaasVlanDHCP() *schema.Resource {
 				Optional:      true,
 				ConflictsWith: []string{"relay_vlan"},
 				AtLeastOneOf:  []string{"primary_rack_controller", "relay_vlan"},
-				Description:   "The system_id of the Rack controller to to use as primary for DHCP.",
+				Description:   "The system_id of the Rack controller to use as primary for DHCP.",
 			},
 			"relay_vlan": {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				ConflictsWith: []string{"primary_rack_controller", "secondary_rack_controller"},
 				AtLeastOneOf:  []string{"primary_rack_controller", "relay_vlan"},
-				Description:   "VID of the VLAN to to use as a relay for DHCP.",
+				Description:   "VID of the VLAN to use as a relay for DHCP.",
 			},
 			"secondary_rack_controller": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				RequiredWith:  []string{"primary_rack_controller"},
 				ConflictsWith: []string{"relay_vlan"},
-				Description:   "The system_id of the Rack controller to to use as secondary for DHCP.",
+				Description:   "The system_id of the Rack controller to use as secondary for DHCP.",
 			},
 			"subnets": {
 				Type:        schema.TypeSet,
@@ -210,7 +210,7 @@ func confirmAllSubnetsWithADynamicIPRange(client *client.Client, d *schema.Resou
 			}
 		}
 		if !foundDynamic {
-			return fmt.Errorf("subnet %s does not have any dynamic IP range", subnetID)
+			return fmt.Errorf("subnet %s does not have any dynamic IP ranges", subnetID)
 		}
 	}
 
