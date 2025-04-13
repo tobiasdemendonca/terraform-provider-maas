@@ -6,10 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/maas/gomaasclient/client"
 )
 
-func dataSourceMaasResourcePool() *schema.Resource {
+func dataSourceMAASResourcePool() *schema.Resource {
 	return &schema.Resource{
 		Description: "Provides details about an existing MAAS resource pool.",
 		ReadContext: dataSourceResourcePoolRead,
@@ -29,8 +28,8 @@ func dataSourceMaasResourcePool() *schema.Resource {
 	}
 }
 
-func dataSourceResourcePoolRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func dataSourceResourcePoolRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	resourcePool, err := getResourcePool(client, d.Get("name").(string))
 	if err != nil {

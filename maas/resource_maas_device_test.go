@@ -3,27 +3,27 @@ package maas_test
 import (
 	"fmt"
 	"strings"
+	"terraform-provider-maas/maas"
 	"terraform-provider-maas/maas/testutils"
 	"testing"
 
+	"github.com/canonical/gomaasclient/entity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/maas/gomaasclient/client"
-	"github.com/maas/gomaasclient/entity"
 )
 
-func TestAccResourceMaasDevice_basic(t *testing.T) {
-
+func TestAccResourceMAASDevice_basic(t *testing.T) {
 	var device entity.Device
+
 	description := "Test description"
 	domain := acctest.RandomWithPrefix("tf-domain-")
 	hostname := acctest.RandomWithPrefix("tf-device-")
 	zone := "default"
-	mac_address := "12:23:45:67:89:de"
+	macAddress := testutils.RandomMAC()
 
 	checks := []resource.TestCheckFunc{
-		testAccMaasDeviceCheckExists("maas_device.test", &device),
+		testAccMAASDeviceCheckExists("maas_device.test", &device),
 		resource.TestCheckResourceAttr("maas_device.test", "description", description),
 		resource.TestCheckResourceAttr("maas_device.test", "domain", domain),
 		resource.TestCheckResourceAttr("maas_device.test", "fqdn", fmt.Sprintf("%s.%s", hostname, domain)),
@@ -32,7 +32,7 @@ func TestAccResourceMaasDevice_basic(t *testing.T) {
 		resource.TestCheckResourceAttr("maas_device.test", "ip_addresses.#", "0"),
 		resource.TestCheckResourceAttr("maas_device.test", "network_interfaces.#", "1"),
 		resource.TestCheckResourceAttrSet("maas_device.test", "network_interfaces.0.id"),
-		resource.TestCheckResourceAttr("maas_device.test", "network_interfaces.0.mac_address", mac_address),
+		resource.TestCheckResourceAttr("maas_device.test", "network_interfaces.0.mac_address", macAddress),
 		resource.TestCheckResourceAttr("maas_device.test", "network_interfaces.0.name", "eth0"),
 		resource.TestCheckResourceAttrSet("maas_device.test", "owner"),
 	}
@@ -40,11 +40,11 @@ func TestAccResourceMaasDevice_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testutils.PreCheck(t, nil) },
 		Providers:    testutils.TestAccProviders,
-		CheckDestroy: testAccCheckMaasDeviceDestroy,
+		CheckDestroy: testAccCheckMAASDeviceDestroy,
 		ErrorCheck:   func(err error) error { return err },
 		Steps: []resource.TestStep{
 			{
-				Config: testAccMaasDevice(description, domain, hostname, zone, mac_address),
+				Config: testAccMAASDevice(description, domain, hostname, zone, macAddress),
 				Check:  resource.ComposeTestCheckFunc(checks...),
 			},
 			// Test import using ID
@@ -74,7 +74,48 @@ func TestAccResourceMaasDevice_basic(t *testing.T) {
 	})
 }
 
-func testAccMaasDeviceCheckExists(rn string, device *entity.Device) resource.TestCheckFunc {
+func TestAccResourceMAASDevice_update(t *testing.T) {
+	var device entity.Device
+
+	deviceHostname := acctest.RandomWithPrefix("tf-device")
+	macAddress := testutils.RandomMAC()
+	macAddress2 := testutils.RandomMAC()
+	fabricName := acctest.RandomWithPrefix("tf-fabric")
+	subnetCIDR := testutils.GenerateRandomCIDR()
+	subnetName := acctest.RandomWithPrefix("tf-subnet")
+	subnetGatewayIP := testutils.GetNetworkPrefixFromCIDR(subnetCIDR) + ".1"
+	linkIPAddress := testutils.GetNetworkPrefixFromCIDR(subnetCIDR) + ".42"
+	checks := []resource.TestCheckFunc{
+		testAccMAASDeviceCheckExists("maas_device.test", &device),
+		resource.TestCheckResourceAttr("maas_device.test", "hostname", deviceHostname),
+		resource.TestCheckResourceAttr("maas_device.test", "network_interfaces.#", "1"),
+		resource.TestCheckResourceAttrSet("maas_device.test", "network_interfaces.0.id"),
+		resource.TestCheckResourceAttrSet("maas_device.test", "owner"),
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testutils.PreCheck(t, nil) },
+		Providers:    testutils.TestAccProviders,
+		CheckDestroy: testAccCheckMAASDeviceDestroy,
+		ErrorCheck:   func(err error) error { return err },
+		Steps: []resource.TestStep{
+			{
+				Config: testAccMAASDeviceNetworkInterfaceConfig(deviceHostname, macAddress, fabricName, subnetCIDR, subnetName, subnetGatewayIP, linkIPAddress),
+				Check: resource.ComposeTestCheckFunc(append(
+					checks,
+					resource.TestCheckResourceAttr("maas_device.test", "network_interfaces.0.mac_address", macAddress),
+					resource.TestCheckResourceAttr("maas_device.test", "ip_addresses.#", "0"), // No IP addresses are initially assigned. MAAS will assign them when the device is created.
+				)...),
+			},
+			{
+				Config: testAccMAASDeviceNetworkInterfaceConfig(deviceHostname, macAddress2, fabricName, subnetCIDR, subnetName, subnetGatewayIP, linkIPAddress),
+				Check:  resource.ComposeTestCheckFunc(append(checks, resource.TestCheckResourceAttr("maas_device.test", "network_interfaces.0.mac_address", macAddress2))...),
+			},
+		},
+	})
+}
+
+func testAccMAASDeviceCheckExists(rn string, device *entity.Device) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -85,7 +126,8 @@ func testAccMaasDeviceCheckExists(rn string, device *entity.Device) resource.Tes
 			return fmt.Errorf("resource id not set")
 		}
 
-		conn := testutils.TestAccProvider.Meta().(*client.Client)
+		conn := testutils.TestAccProvider.Meta().(*maas.ClientConfig).Client
+
 		gotDevice, err := conn.Device.Get(rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting device: %s", err)
@@ -97,7 +139,38 @@ func testAccMaasDeviceCheckExists(rn string, device *entity.Device) resource.Tes
 	}
 }
 
-func testAccMaasDevice(description string, domain string, hostname string, zone string, mac_address string) string {
+func testAccMAASDeviceNetworkInterfaceConfig(deviceHostname string, macAddress string, fabricName string, subnetCIDR string, subnetName string, subnetGatewayIP string, linkIPAddress string) string {
+	return fmt.Sprintf(`
+resource "maas_device" "test" {
+  hostname    = %q
+  network_interfaces {
+    mac_address = %q
+  }
+  depends_on = [maas_fabric.test]
+}
+
+resource "maas_fabric" "test" {
+  name = %q
+}
+
+resource "maas_subnet" "test" {
+  cidr       = %q
+  name       = %q
+  fabric     = maas_fabric.test.id
+  gateway_ip = %q
+}
+
+resource "maas_network_interface_link" "first" {
+  device            = maas_device.test.id
+  network_interface = tolist(maas_device.test.network_interfaces)[0].id
+  subnet            = maas_subnet.test.cidr
+  mode              = "STATIC"
+  ip_address        = %q
+}
+	`, deviceHostname, macAddress, fabricName, subnetCIDR, subnetName, subnetGatewayIP, linkIPAddress)
+}
+
+func testAccMAASDevice(description string, domain string, hostname string, zone string, macAddress string) string {
 	return fmt.Sprintf(`
 resource "maas_dns_domain" "test" {
 	name          = "%s"
@@ -114,12 +187,12 @@ resource "maas_device" "test" {
 		mac_address = "%s"
 	}
 }
-`, domain, description, hostname, zone, mac_address)
+`, domain, description, hostname, zone, macAddress)
 }
 
-func testAccCheckMaasDeviceDestroy(s *terraform.State) error {
+func testAccCheckMAASDeviceDestroy(s *terraform.State) error {
 	// retrieve the connection established in Provider configuration
-	conn := testutils.TestAccProvider.Meta().(*client.Client)
+	conn := testutils.TestAccProvider.Meta().(*maas.ClientConfig).Client
 
 	// loop through the resources in state, verifying each maas_device
 	// is destroyed

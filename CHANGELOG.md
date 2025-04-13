@@ -1,3 +1,34 @@
+## 2.4.0 (Sep 6, 2024)
+
+NEW:
+
+* feat: ephemeral deployment (#218)
+* feat: new datasource for maas_rack_controller (#229)
+
+IMPROVEMENTS:
+
+* fix: tag should query MAAS machines once (#228)
+* fix: correctly parse vlan field of VLAN interfaces (#227)
+* Update dependencies
+* Update Go version to 1.21
+
+## 2.3.0 (Jul 3, 2024)
+
+:warning: Repository ownership and provider name change
+
+The Terraform Provider for MAAS repository now lives under the [Canonical GitHub organisation](https://github.com/canonical) with a new name `github.com/canonical/terraform-provider-maas`. Check [README.md](./README.md) for more information.
+
+NEW:
+
+* ci: add Canonical CLA check (#182)
+
+IMPROVEMENTS:
+
+* bug: respect given timeouts for create/delete operations (#185)
+* fix: manage existing physical interfaces from commissioning (#178)
+* fix: properly import physical interfaces (#169)
+* Update dependencies
+
 ## 2.2.0 (Apr 3, 2024)
 
 NEW:

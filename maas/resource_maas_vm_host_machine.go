@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/canonical/gomaasclient/entity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/maas/gomaasclient/client"
-	"github.com/maas/gomaasclient/entity"
 )
 
-func resourceMaasVMHostMachine() *schema.Resource {
+func resourceMAASVMHostMachine() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Provides a resource to manage MAAS VM host machines.",
 		CreateContext: resourceVMHostMachineCreate,
@@ -19,8 +19,9 @@ func resourceMaasVMHostMachine() *schema.Resource {
 		UpdateContext: resourceVMHostMachineUpdate,
 		DeleteContext: resourceVMHostMachineDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				client := meta.(*client.Client)
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+				client := meta.(*ClientConfig).Client
+
 				machine, err := getMachine(client, d.Id())
 				if err != nil {
 					return nil, err
@@ -28,7 +29,7 @@ func resourceMaasVMHostMachine() *schema.Resource {
 				if machine.VMHost.ID == 0 || machine.VMHost.Name == "" || machine.VMHost.ResourceURI == "" {
 					return nil, fmt.Errorf("machine (%s) is not a VM host machine", d.Id())
 				}
-				tfState := map[string]interface{}{
+				tfState := map[string]any{
 					"id":      machine.SystemID,
 					"vm_host": fmt.Sprintf("%v", machine.VMHost.ID),
 					"cores":   machine.CPUCount,
@@ -147,11 +148,14 @@ func resourceMaasVMHostMachine() *schema.Resource {
 				Description: "The VM host machine zone. This is computed if it's not set.",
 			},
 		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(30 * time.Minute),
+		},
 	}
 }
 
-func resourceVMHostMachineCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func resourceVMHostMachineCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	// Find VM host
 	vmHost, err := getVMHost(client, d.Get("vm_host").(string))
@@ -164,6 +168,7 @@ func resourceVMHostMachineCreate(ctx context.Context, d *schema.ResourceData, me
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	machine, err := client.VMHost.Compose(vmHost.ID, params)
 	if err != nil {
 		return diag.FromErr(err)
@@ -173,7 +178,7 @@ func resourceVMHostMachineCreate(ctx context.Context, d *schema.ResourceData, me
 	d.SetId(machine.SystemID)
 
 	// Wait for VM host machine to be ready
-	_, err = waitForMachineStatus(ctx, client, machine.SystemID, []string{"Commissioning", "Testing"}, []string{"Ready"})
+	_, err = waitForMachineStatus(ctx, client, machine.SystemID, []string{"Commissioning", "Testing"}, []string{"Ready"}, d.Timeout(schema.TimeoutCreate))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -182,8 +187,8 @@ func resourceVMHostMachineCreate(ctx context.Context, d *schema.ResourceData, me
 	return resourceVMHostMachineUpdate(ctx, d, meta)
 }
 
-func resourceVMHostMachineRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func resourceVMHostMachineRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	// Get VM host machine
 	machine, err := client.Machine.Get(d.Id())
@@ -192,7 +197,7 @@ func resourceVMHostMachineRead(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	// Set Terraform state
-	tfState := map[string]interface{}{
+	tfState := map[string]any{
 		"hostname": machine.Hostname,
 		"domain":   machine.Domain.Name,
 		"zone":     machine.Zone.Name,
@@ -205,19 +210,19 @@ func resourceVMHostMachineRead(ctx context.Context, d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceVMHostMachineUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func resourceVMHostMachineUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	// Update VM host machine
-	if _, err := client.Machine.Update(d.Id(), getVMHostMachineUpdateParams(d), map[string]interface{}{}); err != nil {
+	if _, err := client.Machine.Update(d.Id(), getVMHostMachineUpdateParams(d), map[string]any{}); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return resourceVMHostMachineRead(ctx, d, meta)
 }
 
-func resourceVMHostMachineDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func resourceVMHostMachineDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	// Delete VM host machine
 	err := client.Machine.Delete(d.Id())
@@ -229,18 +234,20 @@ func resourceVMHostMachineDelete(ctx context.Context, d *schema.ResourceData, me
 }
 
 func getVMHostMachineParams(d *schema.ResourceData) (*entity.VMHostMachineParams, error) {
-	networkInterfaces, err := getVMHostMachineNetworkInterfaces(d.Get("network_interfaces").([]interface{}))
+	networkInterfaces, err := getVMHostMachineNetworkInterfaces(d.Get("network_interfaces").([]any))
 	if err != nil {
 		return nil, err
 	}
+
 	params := entity.VMHostMachineParams{
 		Hostname:    d.Get("hostname").(string),
 		Cores:       d.Get("cores").(int),
 		PinnedCores: d.Get("pinned_cores").(int),
 		Memory:      int64(d.Get("memory").(int)),
 		Interfaces:  networkInterfaces,
-		Storage:     getVMHostMachineStorageDisks(d.Get("storage_disks").([]interface{})),
+		Storage:     getVMHostMachineStorageDisks(d.Get("storage_disks").([]any)),
 	}
+
 	return &params, nil
 }
 
@@ -253,43 +260,55 @@ func getVMHostMachineUpdateParams(d *schema.ResourceData) *entity.MachineParams 
 	}
 }
 
-func getVMHostMachineNetworkInterfaces(networkInterfaces []interface{}) (string, error) {
+func getVMHostMachineNetworkInterfaces(networkInterfaces []any) (string, error) {
 	vmHostNetworkInterfaces := []string{}
+
 	for _, networkInterface := range networkInterfaces {
-		n := networkInterface.(map[string]interface{})
+		n := networkInterface.(map[string]any)
 		vlan := n["vlan"].(string)
 		subnet := n["subnet_cidr"].(string)
 		ip := n["ip_address"].(string)
+
 		if vlan == "" && subnet == "" && ip == "" {
 			return "", fmt.Errorf("at least one of the network interface properties (vlan, subnet_cidr, ip_address) is required")
 		}
+
 		properties := []string{}
 		if fabric := n["fabric"].(string); fabric != "" {
 			properties = append(properties, fmt.Sprintf("fabric=%s", fabric))
 		}
+
 		if vlan != "" {
 			properties = append(properties, fmt.Sprintf("vlan=%s", vlan))
 		}
+
 		if subnet != "" {
 			properties = append(properties, fmt.Sprintf("subnet_cidr=%s", subnet))
 		}
+
 		if ip != "" {
 			properties = append(properties, fmt.Sprintf("ip=%s", ip))
 		}
+
 		vmHostNetworkInterfaces = append(vmHostNetworkInterfaces, fmt.Sprintf("%s:%s", n["name"].(string), strings.Join(properties, ",")))
 	}
+
 	return strings.Join(vmHostNetworkInterfaces, ";"), nil
 }
 
-func getVMHostMachineStorageDisks(storageDisks []interface{}) string {
+func getVMHostMachineStorageDisks(storageDisks []any) string {
 	vmHostStorageDisks := []string{}
+
 	for i, storageDisk := range storageDisks {
-		d := storageDisk.(map[string]interface{})
+		d := storageDisk.(map[string]any)
 		disk := fmt.Sprintf("disk%d:%d", i, int64(d["size_gigabytes"].(int)))
+
 		if pool := d["pool"].(string); pool != "" {
 			disk = fmt.Sprintf("%s(%s)", disk, pool)
 		}
+
 		vmHostStorageDisks = append(vmHostStorageDisks, disk)
 	}
+
 	return strings.Join(vmHostStorageDisks, ",")
 }

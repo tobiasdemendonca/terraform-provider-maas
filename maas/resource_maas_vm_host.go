@@ -2,19 +2,18 @@ package maas
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/canonical/gomaasclient/client"
+	"github.com/canonical/gomaasclient/entity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/juju/gomaasapi/v2"
-	"github.com/maas/gomaasclient/client"
-	"github.com/maas/gomaasclient/entity"
 )
 
 var (
@@ -24,7 +23,7 @@ var (
 	}
 )
 
-func resourceMaasVMHost() *schema.Resource {
+func resourceMAASVMHost() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Provides a resource to manage MAAS VM hosts.",
 		CreateContext: resourceVMHostCreate,
@@ -32,13 +31,14 @@ func resourceMaasVMHost() *schema.Resource {
 		UpdateContext: resourceVMHostUpdate,
 		DeleteContext: resourceVMHostDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				client := meta.(*client.Client)
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+				client := meta.(*ClientConfig).Client
+
 				vmHost, err := getVMHost(client, d.Id())
 				if err != nil {
 					return nil, err
 				}
-				tfState := map[string]interface{}{
+				tfState := map[string]any{
 					"id":   fmt.Sprintf("%v", vmHost.ID),
 					"type": vmHost.Type,
 				}
@@ -74,6 +74,41 @@ func resourceMaasVMHost() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 				Description: "The new VM host default macvlan mode. Supported values are: `bridge`, `passthru`, `private`, `vepa`. This is computed if it's not set.",
+			},
+			"deploy_params": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				ForceNew:    true,
+				MaxItems:    1,
+				Description: "Nested argument with the config used to deploy the machine specified using `machine`.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"distro_series": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							ForceNew:    true,
+							Description: "The distro series used to deploy the specifed MAAS machine. If it's not given, the MAAS server default value is used.",
+						},
+						"enable_hw_sync": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							ForceNew:    true,
+							Description: "Periodically sync hardware",
+						},
+						"hwe_kernel": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							ForceNew:    true,
+							Description: "Hardware enablement kernel to use with the image. Only used when deploying Ubuntu.",
+						},
+						"user_data": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							ForceNew:    true,
+							Description: "Cloud-init user data script that gets run on the machine once it has deployed. A good practice is to set this with `file(\"/tmp/user-data.txt\")`, where `/tmp/user-data.txt` is a cloud-init script.",
+						},
+					},
+				},
 			},
 			"machine": {
 				Type:          schema.TypeString,
@@ -160,20 +195,31 @@ func resourceMaasVMHost() *schema.Resource {
 			},
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(20 * time.Minute),
+			Create: schema.DefaultTimeout(30 * time.Minute),
+			Delete: schema.DefaultTimeout(30 * time.Minute),
 		},
 	}
 }
 
-func resourceVMHostCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
-
+func resourceVMHostCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 	// Create VM host
 	var vmHost *entity.VMHost
+
 	var err error
+
 	if p, ok := d.GetOk("machine"); ok {
+		// Get parameters for deployment
+		timeout := d.Timeout(schema.TimeoutCreate)
+		vmHostType := d.Get("type").(string)
+
+		deployParams, err := getVMHostDeployParams(d, vmHostType) //nolint:govet // err is also used in else
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
 		// Deploy machine, and register it as VM host
-		vmHost, err = deployMachineAsVMHost(ctx, client, p.(string), d.Get("type").(string))
+		vmHost, err = deployMachineAsVMHost(ctx, client, p.(string), timeout, deployParams)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -191,21 +237,22 @@ func resourceVMHostCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	return resourceVMHostUpdate(ctx, d, meta)
 }
 
-func resourceVMHostRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func resourceVMHostRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	// Get VM host details
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	vmHost, err := client.VMHost.Get(id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	// Set Terraform state
-	tfState := map[string]interface{}{
+	tfState := map[string]any{
 		"name":                          vmHost.Name,
 		"zone":                          vmHost.Zone.Name,
 		"pool":                          vmHost.Pool.Name,
@@ -224,8 +271,8 @@ func resourceVMHostRead(ctx context.Context, d *schema.ResourceData, meta interf
 	return nil
 }
 
-func resourceVMHostUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func resourceVMHostUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	// Get the VM host
 	id, err := strconv.Atoi(d.Id())
@@ -242,18 +289,20 @@ func resourceVMHostUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 	return resourceVMHostRead(ctx, d, meta)
 }
 
-func resourceVMHostDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func resourceVMHostDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	// Delete VM host
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	vmHost, err := client.VMHost.Get(id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	err = client.VMHost.Delete(vmHost.ID)
 	if err != nil {
 		return diag.FromErr(err)
@@ -275,7 +324,7 @@ func resourceVMHostDelete(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 	// Wait machine to be released
-	_, err = waitForMachineStatus(ctx, client, vmHost.Host.SystemID, []string{"Releasing"}, []string{"Ready"})
+	_, err = waitForMachineStatus(ctx, client, vmHost.Host.SystemID, []string{"Releasing"}, []string{"Ready"}, d.Timeout(schema.TimeoutDelete))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -299,7 +348,7 @@ func getVMHostParams(d *schema.ResourceData) *entity.VMHostParams {
 	}
 }
 
-func deployMachineAsVMHost(ctx context.Context, client *client.Client, machineIdentifier string, vmHostType string) (*entity.VMHost, error) {
+func deployMachineAsVMHost(ctx context.Context, client *client.Client, machineIdentifier string, maxTimeout time.Duration, deployParams *entity.MachineDeployParams) (*entity.VMHost, error) {
 	// Find machine
 	machine, err := getMachine(client, machineIdentifier)
 	if err != nil {
@@ -308,44 +357,20 @@ func deployMachineAsVMHost(ctx context.Context, client *client.Client, machineId
 
 	// Allocate machine
 	allocateParams := entity.MachineAllocateParams{SystemID: machine.SystemID}
+
 	machine, err = client.Machines.Allocate(&allocateParams)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get Default OS and series
-	var defaultOsystem string
-	defaultOsystemBytes, err := client.MAASServer.Get("default_osystem")
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(defaultOsystemBytes, &defaultOsystem)
-	if err != nil {
-		return nil, err
-	}
-	var defaultSeries string
-	defaultSeriesBytes, err := client.MAASServer.Get("default_distro_series")
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(defaultSeriesBytes, &defaultSeries)
-	if err != nil {
-		return nil, err
-	}
-
 	// Deploy machine
-	deployParams := entity.MachineDeployParams{
-		DistroSeries:   fmt.Sprintf("%s/%s", defaultOsystem, defaultSeries),
-		InstallKVM:     (vmHostType == "virsh"),
-		RegisterVMHost: (vmHostType == "lxd"),
-	}
-	machine, err = client.Machine.Deploy(machine.SystemID, &deployParams)
+	machine, err = client.Machine.Deploy(machine.SystemID, deployParams)
 	if err != nil {
 		return nil, err
 	}
 
 	// Wait for MAAS machine to be deployed
-	machine, err = waitForMachineStatus(ctx, client, machine.SystemID, []string{"Deploying"}, []string{"Deployed"})
+	machine, err = waitForMachineStatus(ctx, client, machine.SystemID, []string{"Deploying"}, []string{"Deployed"}, maxTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -355,6 +380,7 @@ func deployMachineAsVMHost(ctx context.Context, client *client.Client, machineId
 	if err != nil {
 		return nil, err
 	}
+
 	for _, vmHost := range vmHosts {
 		if vmHost.Host.SystemID == machine.SystemID {
 			return &vmHost, nil
@@ -369,10 +395,33 @@ func getVMHost(client *client.Client, identifier string) (*entity.VMHost, error)
 	if err != nil {
 		return nil, err
 	}
+
 	for _, vmHost := range vmHosts {
 		if fmt.Sprintf("%v", vmHost.ID) == identifier || vmHost.Name == identifier {
 			return &vmHost, err
 		}
 	}
+
 	return nil, fmt.Errorf("VM host (%s) not found", identifier)
+}
+
+func getVMHostDeployParams(d *schema.ResourceData, vmHostType string) (*entity.MachineDeployParams, error) {
+	deployParams := entity.MachineDeployParams{
+		InstallKVM:     (vmHostType == "virsh"),
+		RegisterVMHost: (vmHostType == "lxd"),
+	}
+
+	// Set deploy params if given
+	if p, ok := d.GetOk("deploy_params"); ok {
+		deployParamsData := p.([]any)
+		if deployParamsData[0] != nil {
+			params := deployParamsData[0].(map[string]any)
+			deployParams.DistroSeries = params["distro_series"].(string)
+			deployParams.EnableHwSync = params["enable_hw_sync"].(bool)
+			deployParams.HWEKernel = params["hwe_kernel"].(string)
+			deployParams.UserData = base64Encode([]byte(params["user_data"].(string)))
+		}
+	}
+
+	return &deployParams, nil
 }

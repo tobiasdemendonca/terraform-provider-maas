@@ -6,10 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/maas/gomaasclient/client"
 )
 
-func dataSourceMaasFabric() *schema.Resource {
+func dataSourceMAASFabric() *schema.Resource {
 	return &schema.Resource{
 		Description: "Provides details about an existing MAAS network fabric.",
 		ReadContext: dataSourceFabricRead,
@@ -24,13 +23,14 @@ func dataSourceMaasFabric() *schema.Resource {
 	}
 }
 
-func dataSourceFabricRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func dataSourceFabricRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	fabric, err := getFabric(client, d.Get("name").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	d.SetId(fmt.Sprintf("%v", fabric.ID))
 
 	return nil

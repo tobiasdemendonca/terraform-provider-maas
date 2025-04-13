@@ -1,16 +1,17 @@
 terraform {
   required_providers {
     maas = {
-      source  = "maas/maas"
+      source  = "canonical/maas"
       version = "~>2.0"
     }
   }
 }
 
 provider "maas" {
-  api_version = "2.0"
-  api_key     = "<YOUR API KEY>"
-  api_url     = "<YOUR API URL>"
+  api_version         = "2.0"
+  api_key             = "<YOUR API KEY>"
+  api_url             = "<YOUR API URL>"
+  installation_method = "snap"
 }
 
 resource "maas_space" "tf_space" {

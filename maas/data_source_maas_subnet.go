@@ -6,10 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/maas/gomaasclient/client"
 )
 
-func dataSourceMaasSubnet() *schema.Resource {
+func dataSourceMAASSubnet() *schema.Resource {
 	return &schema.Resource{
 		Description: "Provides details about an existing MAAS network subnet.",
 		ReadContext: dataSourceSubnetRead,
@@ -67,22 +66,25 @@ func dataSourceMaasSubnet() *schema.Resource {
 	}
 }
 
-func dataSourceSubnetRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func dataSourceSubnetRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	subnet, err := getSubnet(client, d.Get("cidr").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	gatewayIp := subnet.GatewayIP.String()
-	if gatewayIp == "<nil>" {
-		gatewayIp = ""
+
+	gatewayIP := subnet.GatewayIP.String()
+	if gatewayIP == "<nil>" {
+		gatewayIP = ""
 	}
+
 	dnsServers := make([]string, len(subnet.DNSServers))
 	for i, ip := range subnet.DNSServers {
 		dnsServers[i] = ip.String()
 	}
-	tfState := map[string]interface{}{
+
+	tfState := map[string]any{
 		"id":          fmt.Sprintf("%v", subnet.ID),
 		"fabric":      subnet.VLAN.Fabric,
 		"vid":         subnet.VLAN.VID,
@@ -90,7 +92,7 @@ func dataSourceSubnetRead(ctx context.Context, d *schema.ResourceData, meta inte
 		"rdns_mode":   subnet.RDNSMode,
 		"allow_dns":   subnet.AllowDNS,
 		"allow_proxy": subnet.AllowProxy,
-		"gateway_ip":  gatewayIp,
+		"gateway_ip":  gatewayIP,
 		"dns_servers": dnsServers,
 	}
 	if err := setTerraformState(d, tfState); err != nil {

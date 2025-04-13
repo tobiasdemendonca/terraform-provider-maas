@@ -6,10 +6,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
-	"github.com/maas/gomaasclient/client"
 )
 
-func dataSourceMaasMachine() *schema.Resource {
+func dataSourceMAASMachine() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceMachineRead,
 
@@ -68,8 +67,9 @@ func dataSourceMaasMachine() *schema.Resource {
 	}
 }
 
-func dataSourceMachineRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func dataSourceMachineRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
+
 	var identifier string
 
 	if v, ok := d.GetOk("hostname"); ok {
@@ -82,15 +82,18 @@ func dataSourceMachineRead(ctx context.Context, d *schema.ResourceData, meta int
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	powerParams, err := client.Machine.GetPowerParameters(machine.SystemID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	powerParamsJson, err := structure.FlattenJsonToString(powerParams)
+
+	powerParamsJSON, err := structure.FlattenJsonToString(powerParams)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	tfState := map[string]interface{}{
+
+	tfState := map[string]any{
 		"id":               machine.SystemID,
 		"architecture":     machine.Architecture,
 		"min_hwe_kernel":   machine.MinHWEKernel,
@@ -99,7 +102,7 @@ func dataSourceMachineRead(ctx context.Context, d *schema.ResourceData, meta int
 		"zone":             machine.Zone.Name,
 		"pool":             machine.Pool.Name,
 		"power_type":       machine.PowerType,
-		"power_parameters": powerParamsJson,
+		"power_parameters": powerParamsJSON,
 		"pxe_mac_address":  machine.BootInterface.MACAddress,
 	}
 	if err := setTerraformState(d, tfState); err != nil {

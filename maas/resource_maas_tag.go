@@ -3,23 +3,25 @@ package maas
 import (
 	"context"
 	"fmt"
+	"slices"
 
+	"github.com/canonical/gomaasclient/client"
+	"github.com/canonical/gomaasclient/entity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/maas/gomaasclient/client"
-	"github.com/maas/gomaasclient/entity"
 )
 
-func resourceMaasTag() *schema.Resource {
+func resourceMAASTag() *schema.Resource {
 	return &schema.Resource{
-		Description:   "Provides a resource to manage a MAAS tag.",
+		Description:   "Provides a resource to manage a MAAS tag, used to tag machines.",
 		CreateContext: resourceTagCreate,
 		ReadContext:   resourceTagRead,
 		UpdateContext: resourceTagUpdate,
 		DeleteContext: resourceTagDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				client := meta.(*client.Client)
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+				client := meta.(*ClientConfig).Client
+
 				tag, err := getTag(client, d.Id())
 				if err != nil {
 					return nil, err
@@ -32,7 +34,7 @@ func resourceMaasTag() *schema.Resource {
 				for i, machine := range machines {
 					machinesSystemIDs[i] = machine.SystemID
 				}
-				tfState := map[string]interface{}{
+				tfState := map[string]any{
 					"id":       tag.Name,
 					"name":     tag.Name,
 					"machines": machinesSystemIDs,
@@ -78,27 +80,30 @@ func resourceMaasTag() *schema.Resource {
 	}
 }
 
-func resourceTagCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func resourceTagCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	params := getTagCreateParams(d)
+
 	tag, err := findTag(client, params.Name)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	if tag == nil {
 		tag, err = client.Tags.Create(params)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 	}
+
 	d.SetId(tag.Name)
 
 	return resourceTagUpdate(ctx, d, meta)
 }
 
-func resourceTagRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func resourceTagRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	tag, err := findTag(client, d.Id())
 	if err != nil {
@@ -115,8 +120,8 @@ func resourceTagRead(ctx context.Context, d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceTagUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func resourceTagUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	if d.HasChanges("definition", "comment", "kernel_opts") {
 		if _, err := client.Tag.Update(d.Id(), getTagCreateParams(d)); err != nil {
@@ -128,6 +133,7 @@ func resourceTagUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	if len(tagMachinesIDs) > 0 {
 		// Tag specified machines
 		err := client.Tag.AddMachines(d.Id(), tagMachinesIDs)
@@ -144,8 +150,8 @@ func resourceTagUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 	return resourceTagRead(ctx, d, meta)
 }
 
-func resourceTagDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func resourceTagDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	if err := client.Tag.Delete(d.Id()); err != nil {
 		return diag.FromErr(err)
@@ -168,12 +174,14 @@ func findTag(client *client.Client, tagName string) (*entity.Tag, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for _, t := range tags {
 		if t.Name == tagName {
 			return &t, nil
 		}
 	}
-	return nil, nil
+
+	return nil, err
 }
 
 func getTag(client *client.Client, tagName string) (*entity.Tag, error) {
@@ -181,9 +189,11 @@ func getTag(client *client.Client, tagName string) (*entity.Tag, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if tag == nil {
 		return nil, fmt.Errorf("tag (%s) was not found", tagName)
 	}
+
 	return tag, nil
 }
 
@@ -192,14 +202,35 @@ func getTagTFMachinesSystemIDs(client *client.Client, d *schema.ResourceData) ([
 	if !ok {
 		return nil, nil
 	}
-	machinesSystemIDs := []string{}
-	for _, machineIdentifier := range convertToStringSlice(p.(*schema.Set).List()) {
-		machine, err := getMachine(client, machineIdentifier)
-		if err != nil {
-			return nil, err
-		}
-		machinesSystemIDs = append(machinesSystemIDs, machine.SystemID)
+
+	machines, err := client.Machines.Get(&entity.MachinesParams{})
+	if err != nil {
+		return nil, err
 	}
+
+	machinesSystemIDs := []string{}
+
+	for _, identifier := range convertToStringSlice(p.(*schema.Set).List()) {
+		found := false
+
+		for _, m := range machines {
+			if slices.Contains([]string{m.SystemID, m.Hostname, m.FQDN}, identifier) {
+				if slices.Contains(machinesSystemIDs, m.SystemID) {
+					return nil, fmt.Errorf("machine (%s) is referenced more than once", m.SystemID)
+				}
+
+				machinesSystemIDs = append(machinesSystemIDs, m.SystemID)
+				found = true
+
+				break
+			}
+		}
+
+		if !found {
+			return nil, fmt.Errorf("machine (%s) not found", identifier)
+		}
+	}
+
 	return machinesSystemIDs, nil
 }
 
@@ -208,22 +239,20 @@ func untagOtherMachines(client *client.Client, tagName string, taggedMachineIDs 
 	if err != nil {
 		return err
 	}
+
 	otherMachines := []string{}
+
 	for _, m := range machines {
-		found := false
-		for _, id := range taggedMachineIDs {
-			if m.SystemID == id {
-				found = true
-				break
-			}
-		}
-		if found {
+		if slices.Contains(taggedMachineIDs, m.SystemID) {
 			continue
 		}
+
 		otherMachines = append(otherMachines, m.SystemID)
 	}
+
 	if len(otherMachines) > 0 {
 		client.Tag.RemoveMachines(tagName, otherMachines)
 	}
+
 	return nil
 }

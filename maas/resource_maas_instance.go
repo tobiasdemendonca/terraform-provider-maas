@@ -5,22 +5,23 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/canonical/gomaasclient/client"
+	"github.com/canonical/gomaasclient/entity"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/maas/gomaasclient/client"
-	"github.com/maas/gomaasclient/entity"
 )
 
-func resourceMaasInstance() *schema.Resource {
+func resourceMAASInstance() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Provides a resource to deploy and release machines already configured in MAAS, based on the specified parameters. If no parameters are given, a random machine will be allocated and deployed using the defaults.\n\n**NOTE:** The MAAS provider currently provides both standalone resources and in-line resources for network interfaces. You cannot use in-line network interfaces in conjunction with any standalone network interfaces resources. Doing so will cause conflicts and will overwrite network configs.",
 		CreateContext: resourceInstanceCreate,
 		ReadContext:   resourceInstanceRead,
 		DeleteContext: resourceInstanceDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				client := meta.(*client.Client)
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+				client := meta.(*ClientConfig).Client
+
 				machine, err := getMachine(client, d.Id())
 				if err != nil {
 					return nil, err
@@ -118,6 +119,12 @@ func resourceMaasInstance() *schema.Resource {
 							ForceNew:    true,
 							Description: "Periodically sync hardware",
 						},
+						"ephemeral": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							ForceNew:    true,
+							Description: "Deploy machine in memory",
+						},
 						"hwe_kernel": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -205,13 +212,14 @@ func resourceMaasInstance() *schema.Resource {
 			},
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(20 * time.Minute),
+			Create: schema.DefaultTimeout(30 * time.Minute),
+			Delete: schema.DefaultTimeout(30 * time.Minute),
 		},
 	}
 }
 
-func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	// Allocate MAAS machine
 	machine, err := client.Machines.Allocate(getMachinesAllocateParams(d))
@@ -235,7 +243,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	// Wait for MAAS machine to be deployed
-	_, err = waitForMachineStatus(ctx, client, machine.SystemID, []string{"Deploying"}, []string{"Deployed"})
+	_, err = waitForMachineStatus(ctx, client, machine.SystemID, []string{"Deploying"}, []string{"Deployed"}, d.Timeout(schema.TimeoutCreate))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -244,8 +252,8 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, meta in
 	return resourceInstanceRead(ctx, d, meta)
 }
 
-func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	// Get MAAS machine
 	machine, err := client.Machine.Get(d.Id())
@@ -257,7 +265,8 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, meta inte
 	for i, ip := range machine.IPAddresses {
 		ipAddresses[i] = ip.String()
 	}
-	tfState := map[string]interface{}{
+
+	tfState := map[string]any{
 		"fqdn":         machine.FQDN,
 		"hostname":     machine.Hostname,
 		"zone":         machine.Zone.Name,
@@ -274,8 +283,8 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, meta inte
 	return nil
 }
 
-func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client := meta.(*ClientConfig).Client
 
 	// Release MAAS machine
 	err := client.Machines.Release([]string{d.Id()}, "Released by Terraform")
@@ -284,7 +293,7 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	// Wait MAAS machine to be released
-	_, err = waitForMachineStatus(ctx, client, d.Id(), []string{"Releasing"}, []string{"Ready"})
+	_, err = waitForMachineStatus(ctx, client, d.Id(), []string{"Releasing"}, []string{"Ready"}, d.Timeout(schema.TimeoutDelete))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -294,9 +303,10 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, meta in
 
 func getMachinesAllocateParams(d *schema.ResourceData) *entity.MachineAllocateParams {
 	if p, ok := d.GetOk("allocate_params"); ok {
-		allocateParamsData := p.([]interface{})
+		allocateParamsData := p.([]any)
 		if allocateParamsData[0] != nil {
-			allocateParams := allocateParamsData[0].(map[string]interface{})
+			allocateParams := allocateParamsData[0].(map[string]any)
+
 			return &entity.MachineAllocateParams{
 				CPUCount: allocateParams["min_cpu_count"].(int),
 				Mem:      int64(allocateParams["min_memory"].(int)),
@@ -308,30 +318,35 @@ func getMachinesAllocateParams(d *schema.ResourceData) *entity.MachineAllocatePa
 			}
 		}
 	}
+
 	return &entity.MachineAllocateParams{}
 }
 
 func getMachineDeployParams(d *schema.ResourceData) *entity.MachineDeployParams {
 	if p, ok := d.GetOk("deploy_params"); ok {
-		deployParamsData := p.([]interface{})
+		deployParamsData := p.([]any)
 		if deployParamsData[0] != nil {
-			deployParams := deployParamsData[0].(map[string]interface{})
+			deployParams := deployParamsData[0].(map[string]any)
+
 			return &entity.MachineDeployParams{
-				DistroSeries: deployParams["distro_series"].(string),
-				EnableHwSync: deployParams["enable_hw_sync"].(bool),
-				HWEKernel:    deployParams["hwe_kernel"].(string),
-				UserData:     base64Encode([]byte(deployParams["user_data"].(string))),
+				DistroSeries:    deployParams["distro_series"].(string),
+				EnableHwSync:    deployParams["enable_hw_sync"].(bool),
+				EphemeralDeploy: deployParams["ephemeral"].(bool),
+				HWEKernel:       deployParams["hwe_kernel"].(string),
+				UserData:        base64Encode([]byte(deployParams["user_data"].(string))),
 			}
 		}
 	}
+
 	return &entity.MachineDeployParams{}
 }
 
 func configureInstanceNetworkInterfaces(client *client.Client, d *schema.ResourceData, machine *entity.Machine) error {
 	for _, networkInterface := range d.Get("network_interfaces").(*schema.Set).List() {
-		n := networkInterface.(map[string]interface{})
+		n := networkInterface.(map[string]any)
 		// Find the machine network interface
 		name := n["name"].(string)
+
 		nic, err := getNetworkInterface(client, machine.SystemID, name)
 		if err != nil {
 			return err
@@ -339,15 +354,17 @@ func configureInstanceNetworkInterfaces(client *client.Client, d *schema.Resourc
 		// Validate the given network configs
 		subnetCIDR := n["subnet_cidr"].(string)
 		ipAddress := n["ip_address"].(string)
+
 		if subnetCIDR == "" {
 			if ipAddress != "" {
 				return fmt.Errorf("network interface (%s): 'subnet_cidr' is required when 'ip_address' is set", name)
 			}
 			// Clear existing network interface links
 			// This will leave the network interface disconnected
-			if _, err := client.NetworkInterface.Disconnect(machine.SystemID, nic.ID); err != nil {
+			if _, err = client.NetworkInterface.Disconnect(machine.SystemID, nic.ID); err != nil {
 				return err
 			}
+
 			continue
 		}
 		// Find the subnet
@@ -356,7 +373,7 @@ func configureInstanceNetworkInterfaces(client *client.Client, d *schema.Resourc
 			return err
 		}
 		// Clear existing network interface links
-		if _, err := client.NetworkInterface.Disconnect(machine.SystemID, nic.ID); err != nil {
+		if _, err = client.NetworkInterface.Disconnect(machine.SystemID, nic.ID); err != nil {
 			return err
 		}
 		// Create new network interface link
@@ -364,6 +381,7 @@ func configureInstanceNetworkInterfaces(client *client.Client, d *schema.Resourc
 		if ipAddress != "" {
 			mode = "STATIC"
 		}
+
 		params := entity.NetworkInterfaceLinkParams{
 			Mode:      mode,
 			Subnet:    subnet.ID,
@@ -373,5 +391,6 @@ func configureInstanceNetworkInterfaces(client *client.Client, d *schema.Resourc
 			return err
 		}
 	}
+
 	return nil
 }
