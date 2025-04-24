@@ -121,3 +121,4 @@ Builds and releases are automated with GitHub Actions and GoReleaser. There are 
 ### Testing
 
 Unit tests run with every pull request and merge to master. The end to end tests run on a nightly basis against a hosted MAAS deployment, results can be found [here](https://raw.githubusercontent.com/canonical/maas-terraform-e2e-tests/main/results.json?token=GHSAT0AAAAAAB3FX6R5C67Q4LH7ADOO5O3IY4ODCNA) and are checked on each PR, with a warning if failed.
+
