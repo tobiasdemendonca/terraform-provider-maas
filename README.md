@@ -114,9 +114,9 @@ Builds and releases are automated with GitHub Actions and GoReleaser. There are 
 
 2. Publish the release: 
    
-   The action creates a "draft" release. Go to [Releases](https://github.com/maas/terraform-provider-maas/releases) to open it, select `edit` and click `Generate release notes`. Select `Publish release` when you are happy. 
+   The action creates a "draft" release. Go to [Releases](https://github.com/canonical/terraform-provider-maas/releases) to open it, select `edit` and click `Generate release notes`. Select `Publish release` when you are happy. 
 
-3. Verify the published release looks good by checking in [Releases](https://github.com/maas/terraform-provider-maas/releases).
+3. Verify the published release looks good by checking in [Releases](https://github.com/canonical/terraform-provider-maas/releases).
 
 ## Additional Info
 
