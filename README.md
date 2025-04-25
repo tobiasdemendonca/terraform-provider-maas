@@ -108,6 +108,8 @@ Builds and releases are automated with GitHub Actions and GoReleaser. There are 
   git push upstream tag vX.Y.Z
   ```
 
+  Where `upstream` is the remote name pointing to the canonical/terraform-provider-maas repository. 
+  
   The provider versions follow [semantic versioning](https://semver.org/), and the release action can be viewed under [Actions](https://github.com/canonical/terraform-provider-maas/actions).
 
 2. Publish the release: 
