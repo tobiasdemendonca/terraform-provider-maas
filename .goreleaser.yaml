@@ -60,6 +60,7 @@ release:
 changelog:
   sort: asc
   use: github
+  format: "{{ .SHA }}: {{ .Message }}{{ with .AuthorUsername }} (@{{ . }}){{ end }}"
   filters:
     exclude:
       - '^test:'
@@ -72,3 +73,4 @@ changelog:
       order: 1
     - title: Others
       order: 999
+  
