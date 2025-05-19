@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/canonical/gomaasclient/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataSourceMaasVMHost() *schema.Resource {
+func dataSourceMAASVMHost() *schema.Resource {
 	return &schema.Resource{
 		Description: "Provides details about an existing MAAS VM host.",
 		ReadContext: dataSourceVMHostRead,
@@ -110,7 +109,7 @@ func dataSourceMaasVMHost() *schema.Resource {
 }
 
 func dataSourceVMHostRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client.Client)
+	client := meta.(*ClientConfig).Client
 
 	// Get VM host details
 	vmHost, err := getVMHost(client, d.Get("name").(string))
@@ -143,18 +142,23 @@ func dataSourceVMHostRead(ctx context.Context, d *schema.ResourceData, meta inte
 	if powerAddress, ok := vmHostParameters["power_address"]; ok {
 		tfState["power_address"] = powerAddress
 	}
+
 	if powerPasswd, ok := vmHostParameters["power_pass"]; ok {
 		tfState["power_pass"] = powerPasswd
 	}
+
 	if powerUser, ok := vmHostParameters["power_user"]; ok {
 		tfState["power_user"] = powerUser
 	}
+
 	if certificate, ok := vmHostParameters["certificate"]; ok {
 		tfState["certificate"] = certificate
 	}
+
 	if project, ok := vmHostParameters["project"]; ok {
 		tfState["project"] = project
 	}
+
 	if key, ok := vmHostParameters["key"]; ok {
 		tfState["key"] = key
 	}

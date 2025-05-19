@@ -2,46 +2,100 @@ package maas_test
 
 import (
 	"fmt"
+	"os"
 	"terraform-provider-maas/maas/testutils"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/maas/gomaasclient/entity"
 )
 
-func TestAccDataSourceMaasVmHost_basic(t *testing.T) {
+var baseCheckFunctions = []resource.TestCheckFunc{
+	resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "type", "maas_vm_host.test", "type"),
+	resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "name", "maas_vm_host.test", "name"),
+	resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "cpu_over_commit_ratio", "maas_vm_host.test", "cpu_over_commit_ratio"),
+	resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "default_macvlan_mode", "maas_vm_host.test", "default_macvlan_mode"),
+	resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "memory_over_commit_ratio", "maas_vm_host.test", "memory_over_commit_ratio"),
+	resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "pool", "maas_vm_host.test", "pool"),
+	resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "power_address", "maas_vm_host.test", "power_address"),
+	resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "resources_cores_total", "maas_vm_host.test", "resources_cores_total"),
+	resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "resources_local_storage_total", "maas_vm_host.test", "resources_local_storage_total"),
+	resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "resources_memory_total", "maas_vm_host.test", "resources_memory_total"),
+	resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "tags.#", "maas_vm_host.test", "tags.#"),
+	resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "zone", "maas_vm_host.test", "zone"),
+}
 
-	var resourcePool entity.ResourcePool
-	description := "Test description"
-	name := acctest.RandomWithPrefix("tf-resource-pool-")
-
-	checks := []resource.TestCheckFunc{
-		testAccMaasResourcePoolCheckExists("maas_resource_pool.test", &resourcePool),
-		resource.TestCheckResourceAttr("data.maas_resource_pool.test", "description", description),
-		resource.TestCheckResourceAttr("data.maas_resource_pool.test", "name", name),
-	}
+func TestAccDataSourceMAASVMHost_lxd(t *testing.T) {
+	vmHostID := os.Getenv("TF_ACC_VM_HOST_ID")
+	vmHostMachineName := acctest.RandomWithPrefix("tf-data-source-vm-host")
+	vmHostType := "lxd"
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testutils.PreCheck(t, nil) },
+		PreCheck:     func() { testutils.PreCheck(t, []string{"TF_ACC_VM_HOST_ID"}) },
 		Providers:    testutils.TestAccProviders,
-		CheckDestroy: testAccCheckMaasResourcePoolDestroy,
+		CheckDestroy: testAccCheckMAASVMHostDestroy,
 		ErrorCheck:   func(err error) error { return err },
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDataSourceMaasResourcePool(description, name),
-				Check:  resource.ComposeTestCheckFunc(checks...),
+				Config: testAccDataSourceMAASVMHostConfig(vmHostID, vmHostMachineName, vmHostType),
+				Check: resource.ComposeTestCheckFunc(append(
+					baseCheckFunctions,
+					checkMAASVMHostExists(t, "maas_vm_host.test"),
+					resource.TestCheckResourceAttr("data.maas_vm_host.test", "type", vmHostType),
+					resource.TestCheckResourceAttr("data.maas_vm_host.test", "project", "default"),
+					resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "certificate", "maas_vm_host.test", "certificate"),
+					resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "key", "maas_vm_host.test", "key"),
+					resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "project", "maas_vm_host.test", "project"),
+					resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "password", "maas_vm_host.test", "password"),
+				)...,
+				),
 			},
 		},
 	})
 }
 
-func testAccDataSourceMaasResourcePool(description string, name string) string {
-	return fmt.Sprintf(`
-%s
+func TestAccDataSourceMAASVMHost_virsh(t *testing.T) {
+	vmHostID := os.Getenv("TF_ACC_VM_HOST_ID")
+	vmHostMachineName := acctest.RandomWithPrefix("tf-data-source-vm-host")
+	vmHostType := "virsh"
 
-data "maas_resource_pool" "test" {
-	name = maas_resource_pool.test.name
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testutils.PreCheck(t, []string{"TF_ACC_VM_HOST_ID"}) },
+		Providers:    testutils.TestAccProviders,
+		CheckDestroy: testAccCheckMAASVMHostDestroy,
+		ErrorCheck:   func(err error) error { return err },
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceMAASVMHostConfig(vmHostID, vmHostMachineName, vmHostType),
+				Check: resource.ComposeTestCheckFunc(append(
+					baseCheckFunctions,
+					checkMAASVMHostExists(t, "maas_vm_host.test"),
+					resource.TestCheckResourceAttr("data.maas_vm_host.test", "type", vmHostType),
+					resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "power_pass", "maas_vm_host.test", "power_pass"),
+				)...,
+				),
+			},
+		},
+	})
 }
-`, testAccMaasResourcePool(description, name))
+
+func testAccDataSourceMAASVMHostConfig(vmHost string, vmHostMachineName string, hostType string) string {
+	return fmt.Sprintf(`
+resource "maas_vm_host_machine" "vm_host_machine" {
+  vm_host  = %q
+  hostname = %q
+}
+
+resource "maas_vm_host" "test" {
+  type    = %q
+  machine = maas_vm_host_machine.vm_host_machine.id
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+data "maas_vm_host" "test" {
+  name = maas_vm_host.test.name
+}
+`, vmHost, vmHostMachineName, hostType)
 }
