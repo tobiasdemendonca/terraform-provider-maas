@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/canonical/gomaasclient/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/maas/gomaasclient/client"
 )
 
 func dataSourceMaasVMHost() *schema.Resource {
@@ -67,6 +67,11 @@ func dataSourceMaasVMHost() *schema.Resource {
 				Computed:    true,
 				Description: "User name to use for power control of the VM host.",
 			},
+			"project": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "For `lxd` VM hosts, the project that MAAS will manage.",
+			},
 			"resources_cores_total": {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -89,11 +94,6 @@ func dataSourceMaasVMHost() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-			},
-			"project": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "For `lxd` VM hosts, the project that MAAS will manage.",
 			},
 			"type": {
 				Type:        schema.TypeString,
