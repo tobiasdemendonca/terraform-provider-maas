@@ -68,21 +68,10 @@ func TestAccDataSourceMAASVMHost_virsh(t *testing.T) {
 
 func testAccDataSourceMAASVMHostConfig(vmHost string, vmHostMachineName string, hostType string) string {
 	return fmt.Sprintf(`
-resource "maas_vm_host_machine" "vm_host_machine" {
-  vm_host  = %q
-  hostname = %q
-}
-
-resource "maas_vm_host" "test" {
-  type    = %q
-  machine = maas_vm_host_machine.vm_host_machine.id
-  lifecycle {
-    ignore_changes = all
-  }
-}
+%s
 
 data "maas_vm_host" "test" {
   name = maas_vm_host.test.name
 }
-`, vmHost, vmHostMachineName, hostType)
+`, testAccMAASVMHostDeployParamsConfig(vmHost, vmHostMachineName, hostType))
 }
