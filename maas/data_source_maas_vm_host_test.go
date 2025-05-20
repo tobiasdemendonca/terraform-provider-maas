@@ -45,6 +45,7 @@ func testAccDataSourceMAASVMHost(t *testing.T, vmHostType string, additionalChec
 		},
 	})
 }
+
 func TestAccDataSourceMAASVMHost_lxd(t *testing.T) {
 	vmHostType := "lxd"
 	testAccDataSourceMAASVMHost(t, vmHostType,
