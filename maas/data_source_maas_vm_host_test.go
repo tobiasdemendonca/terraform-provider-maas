@@ -25,10 +25,12 @@ var baseCheckFunctions = []resource.TestCheckFunc{
 	resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "zone", "maas_vm_host.test", "zone"),
 }
 
-func TestAccDataSourceMAASVMHost_lxd(t *testing.T) {
+func testAccDataSourceMAASVMHost(t *testing.T, vmHostType string, additionalChecks ...resource.TestCheckFunc) {
 	vmHostID := os.Getenv("TF_ACC_VM_HOST_ID")
-	vmHostMachineName := acctest.RandomWithPrefix("tf-data-source-vm-host")
-	vmHostType := "lxd"
+	vmHostMachineName := acctest.RandomWithPrefix(fmt.Sprintf("tf-data-source-vm-host-%s", vmHostType))
+
+	checks := append(baseCheckFunctions, checkMAASVMHostExists(t, "maas_vm_host.test"))
+	checks = append(checks, additionalChecks...)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testutils.PreCheck(t, []string{"TF_ACC_VM_HOST_ID"}) },
@@ -38,45 +40,30 @@ func TestAccDataSourceMAASVMHost_lxd(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceMAASVMHostConfig(vmHostID, vmHostMachineName, vmHostType),
-				Check: resource.ComposeTestCheckFunc(append(
-					baseCheckFunctions,
-					checkMAASVMHostExists(t, "maas_vm_host.test"),
-					resource.TestCheckResourceAttr("data.maas_vm_host.test", "type", vmHostType),
-					resource.TestCheckResourceAttr("data.maas_vm_host.test", "project", "default"),
-					resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "certificate", "maas_vm_host.test", "certificate"),
-					resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "key", "maas_vm_host.test", "key"),
-					resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "project", "maas_vm_host.test", "project"),
-					resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "password", "maas_vm_host.test", "password"),
-				)...,
-				),
+				Check:  resource.ComposeTestCheckFunc(checks...),
 			},
 		},
 	})
 }
+func TestAccDataSourceMAASVMHost_lxd(t *testing.T) {
+	vmHostType := "lxd"
+	testAccDataSourceMAASVMHost(t, vmHostType,
+		checkMAASVMHostExists(t, "maas_vm_host.test"),
+		resource.TestCheckResourceAttr("data.maas_vm_host.test", "type", vmHostType),
+		resource.TestCheckResourceAttr("data.maas_vm_host.test", "project", "default"),
+		resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "certificate", "maas_vm_host.test", "certificate"),
+		resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "key", "maas_vm_host.test", "key"),
+		resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "project", "maas_vm_host.test", "project"),
+		resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "password", "maas_vm_host.test", "password"))
+}
 
 func TestAccDataSourceMAASVMHost_virsh(t *testing.T) {
-	vmHostID := os.Getenv("TF_ACC_VM_HOST_ID")
-	vmHostMachineName := acctest.RandomWithPrefix("tf-data-source-vm-host")
 	vmHostType := "virsh"
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testutils.PreCheck(t, []string{"TF_ACC_VM_HOST_ID"}) },
-		Providers:    testutils.TestAccProviders,
-		CheckDestroy: testAccCheckMAASVMHostDestroy,
-		ErrorCheck:   func(err error) error { return err },
-		Steps: []resource.TestStep{
-			{
-				Config: testAccDataSourceMAASVMHostConfig(vmHostID, vmHostMachineName, vmHostType),
-				Check: resource.ComposeTestCheckFunc(append(
-					baseCheckFunctions,
-					checkMAASVMHostExists(t, "maas_vm_host.test"),
-					resource.TestCheckResourceAttr("data.maas_vm_host.test", "type", vmHostType),
-					resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "power_pass", "maas_vm_host.test", "power_pass"),
-				)...,
-				),
-			},
-		},
-	})
+	testAccDataSourceMAASVMHost(t, vmHostType,
+		resource.TestCheckResourceAttr("data.maas_vm_host.test", "type", vmHostType),
+		resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "power_pass", "maas_vm_host.test", "power_pass"),
+	)
 }
 
 func testAccDataSourceMAASVMHostConfig(vmHost string, vmHostMachineName string, hostType string) string {
