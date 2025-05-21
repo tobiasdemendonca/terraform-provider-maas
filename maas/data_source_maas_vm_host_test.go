@@ -29,7 +29,9 @@ func testAccDataSourceMAASVMHost(t *testing.T, vmHostType string, additionalChec
 	vmHostID := os.Getenv("TF_ACC_VM_HOST_ID")
 	vmHostMachineName := acctest.RandomWithPrefix(fmt.Sprintf("tf-data-source-vm-host-%s", vmHostType))
 
-	checks := append(baseCheckFunctions, checkMAASVMHostExists(t, "maas_vm_host.test"))
+	checks := make([]resource.TestCheckFunc, 0, len(baseCheckFunctions)+len(additionalChecks)+1)
+	checks = append(checks, baseCheckFunctions...)
+	checks = append(checks, checkMAASVMHostExists(t, "maas_vm_host.test"))
 	checks = append(checks, additionalChecks...)
 
 	resource.ParallelTest(t, resource.TestCase{
