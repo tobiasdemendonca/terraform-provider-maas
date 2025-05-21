@@ -48,7 +48,7 @@ func testAccDataSourceMAASVMHost(t *testing.T, vmHostType string, additionalChec
 
 func TestAccDataSourceMAASVMHost_lxd(t *testing.T) {
 	vmHostType := "lxd"
-	
+
 	testAccDataSourceMAASVMHost(t, vmHostType,
 		checkMAASVMHostExists(t, "maas_vm_host.test"),
 		resource.TestCheckResourceAttr("data.maas_vm_host.test", "type", vmHostType),
