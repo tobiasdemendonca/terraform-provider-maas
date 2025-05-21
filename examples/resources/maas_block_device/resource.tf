@@ -1,5 +1,5 @@
 resource "maas_block_device" "vdb" {
-  machine        = maas_machine.virsh_vm2.id
+  machine        = "abc123"
   name           = "vdb"
   id_path        = "/dev/vdb"
   size_gigabytes = 27

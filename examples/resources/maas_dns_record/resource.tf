@@ -1,3 +1,9 @@
+resource "maas_dns_domain" "cloudbase" {
+  name          = "cloudbase"
+  ttl           = 3600
+  authoritative = true
+}
+
 resource "maas_dns_record" "test_a" {
   type = "A/AAAA"
   data = "10.99.11.33"
