@@ -51,7 +51,7 @@ func TestAccDataSourceMAASVMHost_lxd(t *testing.T) {
 	testAccDataSourceMAASVMHost(t, vmHostType,
 		checkMAASVMHostExists(t, "maas_vm_host.test"),
 		resource.TestCheckResourceAttr("data.maas_vm_host.test", "type", vmHostType),
-		resource.TestCheckResourceAttr("data.maas_vm_host.test", "project", "default"),
+		resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "project", "maas_vm_host.test", "project"),
 		resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "certificate", "maas_vm_host.test", "certificate"),
 		resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "key", "maas_vm_host.test", "key"),
 		resource.TestCheckResourceAttrPair("data.maas_vm_host.test", "project", "maas_vm_host.test", "project"),
