@@ -1,4 +1,4 @@
-# Terraform provider for MAAS
+# Terraform Provider for MAAS
 
 This repository contains the source code for the Terraform provider for MAAS, which allows you to manage [MAAS](https://maas.io/) (Metal as a Service) resources using Terraform.
 
