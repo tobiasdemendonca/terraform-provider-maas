@@ -1,6 +1,8 @@
 # Terraform Provider for MAAS
 
-This repository contains the source code for the Terraform MAAS provider.
+This repository contains the source code for the Terraform MAAS provider, which allows you to manage [MAAS](https://maas.io/) (Metal as a Service) resources using Terraform.
+
+For detailed information about what this provider does and how to use it, see the [Canonical/MAAS](https://registry.terraform.io/providers/canonical/maas/latest/docs) Terraform registry for the latest provider documentation, or [MAAS/MAAS](https://registry.terraform.io/providers/maas/maas/latest/docs) for provider versions 2.2.0 and below (no longer maintained).
 
 ## :warning: Repository ownership and provider name change
 
