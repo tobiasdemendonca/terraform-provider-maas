@@ -2,7 +2,6 @@ package maas_test
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"terraform-provider-maas/maas/testutils"
 	"testing"
@@ -10,10 +9,8 @@ import (
 	"terraform-provider-maas/maas"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	// "github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	// "google.golang.org/grpc/keepalive"
-	// "github.com/canonical/gomaasclient/client"
+
 )
 
 func TestAccResourceMAASConfiguration_basic(t *testing.T) {
@@ -350,8 +347,6 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 			value2: "",
 		},
 	}
-
-	log.Print("Test cases for MAAS Configuration:")
 
 	for _, testCase := range testCases {
 		t.Run(testCase.key, func(t *testing.T) {
