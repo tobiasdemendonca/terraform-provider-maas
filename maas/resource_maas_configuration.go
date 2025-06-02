@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceMAASConfiguration() *schema.Resource {
@@ -22,15 +24,16 @@ func resourceMAASConfiguration() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "Key corresponding to the configuration setting.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "Key corresponding to the configuration setting.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringDoesNotMatch(regexp.MustCompile("maas_auto_ipmi_workaround_flags"), "Key 'maas_auto_ipmi_workaround_flags' cannot currently be set through Terraform due to a [bug in MAAS](https://bugs.launchpad.net/maas/+bug/2112191). A fix will be worked on for a future MAAS releases.")),
 			},
 			"value": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Value for the configuration setting.",
+				Description: "Value for the configuration setting, always specified as a string",
 			},
 		},
 	}
@@ -60,17 +63,18 @@ func resourceMAASConfigurationCreate(ctx context.Context, d *schema.ResourceData
 }
 
 func resourceMAASConfigurationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Println("running resourceMAASConfigurationRead")
-
 	client := meta.(*ClientConfig).Client
 
-	value, err := client.MAASServer.Get(d.Get("key").(string))
+	key := d.Id()
+
+	value, err := client.MAASServer.Get(key)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	tfState := map[string]any{
 		"value": strings.Trim(string(value), "\""),
+		"key":   key,
 	}
 	if err := setTerraformState(d, tfState); err != nil {
 		return diag.FromErr(err)

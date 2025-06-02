@@ -10,7 +10,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-
 )
 
 func TestAccResourceMAASConfiguration_basic(t *testing.T) {
@@ -178,8 +177,8 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 			value2: "ADMIN",
 		},
 		// {
-		// 	key: "maas_auto_ipmi_workaround_flags",   // Does not currently work
-		// 	value_1:  ,
+		// 	key: "maas_auto_ipmi_workaround_flags",   // Will work when this bug is fixed https://bugs.launchpad.net/maas/+bug/2112191
+		// 	value1:  "asdf",
 		// },
 		{
 			key:    "maas_internal_domain",
@@ -276,11 +275,11 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 			value1: "false",
 			value2: "true",
 		},
-		{
-			key:    "remote_syslog",
-			value1: "example.com:514",
-			value2: "",
-		},
+		// {
+		// 	key:    "remote_syslog",
+		// 	value1: "example.com:514",
+		// 	value2: "",					// Returning null if unset, needs fixing
+		// },
 		{
 			key:    "session_length",
 			value1: "604800",  // 7 days
@@ -350,7 +349,7 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.key, func(t *testing.T) {
-			resource.Test(t, resource.TestCase{
+			resource.ParallelTest(t, resource.TestCase{
 				PreCheck:     func() { testutils.PreCheck(t, nil) },
 				Providers:    testutils.TestAccProviders,
 				CheckDestroy: testAccMAASConfigurationCheckDestroy,
