@@ -19,7 +19,7 @@ func TestNormalizeConfigValue(t *testing.T) {
 	}{
 		{
 			apiValue: []byte{0x6e, 0x75, 0x6c, 0x6c},
-			expected: " ",
+			expected: "",
 			label:    "literal null",
 		},
 		{
