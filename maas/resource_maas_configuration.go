@@ -1,6 +1,7 @@
 package maas
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -34,14 +35,6 @@ func resourceMAASConfiguration() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Value for the configuration setting, always specified as a string",
-				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
-					if d.Get("key").(string) == "remote_syslog" {
-						if newValue == "" {
-							return oldValue == "null"
-						}
-					}
-					return oldValue == newValue
-				},
 			},
 		},
 	}
@@ -81,7 +74,7 @@ func resourceMAASConfigurationRead(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	tfState := map[string]any{
-		"value": strings.Trim(string(value), "\""),
+		"value": NormalizeConfigValue(value),
 		"key":   key,
 	}
 	if err := setTerraformState(d, tfState); err != nil {
@@ -110,4 +103,14 @@ func resourceMAASConfigurationDelete(ctx context.Context, d *schema.ResourceData
 	d.SetId("")
 
 	return nil
+}
+
+func NormalizeConfigValue(apiValue []byte) string {
+	// MAAS allows setting of some null values using empty strings i.e. "", but this will output `null` as bytes when read back for some keys e.g. remote_syslog.
+	// As the user can only set null values with empty strings, we will convert `null` to an empty string instead of using something like DiffSuppressFunc.
+	if bytes.Equal(apiValue, []byte("null")) {
+		return ""
+	}
+	// Some string values are returned as quoted strings, which we will remove.
+	return strings.Trim(string(apiValue), "\"")
 }

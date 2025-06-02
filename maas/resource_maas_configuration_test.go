@@ -2,7 +2,6 @@ package maas_test
 
 import (
 	"fmt"
-	"strings"
 	"terraform-provider-maas/maas/testutils"
 	"testing"
 
@@ -11,6 +10,49 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
+
+func TestNormalizeConfigValue(t *testing.T) {
+	testCases := []struct {
+		apiValue []byte
+		expected string
+		label    string
+	}{
+		{
+			apiValue: []byte{0x6e, 0x75, 0x6c, 0x6c},
+			expected: " ",
+			label:    "literal null",
+		},
+		{
+			apiValue: []byte("\"null\""),
+			expected: "null",
+			label:    "string literal null",
+		},
+		{
+			apiValue: []byte("hello world"),
+			expected: "hello world",
+			label:    "unquoted string",
+		},
+		{
+			apiValue: []byte("example.com:514"),
+			expected: "example.com:514",
+			label:    "unquoted string 2",
+		},
+		{
+			apiValue: []byte("\"example.com:514\""),
+			expected: "example.com:514",
+			label:    "quoted string",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			res := maas.NormalizeConfigValue(testCase.apiValue)
+			if res != testCase.expected {
+				t.Errorf("expected %q, got %q for case %q", testCase.expected, res, testCase.label)
+			}
+		})
+	}
+}
 
 func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 	// Test all MAAS Settings cases. Set twice to ensure a change is actually made
@@ -278,7 +320,7 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 		{
 			key:    "remote_syslog",
 			value1: "example.com:514",
-			value2: "",					// Returning null if unset
+			value2: "", // Returning null if unset
 		},
 		{
 			key:    "session_length",
@@ -396,7 +438,7 @@ func testAccMAASConfigurationCheckExists(rn string) resource.TestCheckFunc {
 			return fmt.Errorf("error getting configuration value: %s", err)
 		}
 
-		cleanedVal := strings.Trim(string(value), "\"")
+		cleanedVal := maas.NormalizeConfigValue(value)
 		if cleanedVal != rs.Primary.Attributes["value"] {
 			return fmt.Errorf("configuration value does not match: expected %s, got %s", rs.Primary.Attributes["value"], value)
 		}
