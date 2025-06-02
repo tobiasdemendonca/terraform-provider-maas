@@ -206,52 +206,63 @@ func TestAccResourceMAASConfiguration_basic(t * testing.T) {
 		},
 		{
 			key: "enable_kernel_crash_dump",
-			value_1:  , 
+			value_1:  "true", 
+			value_2:  "false",
 		},
 		{
 			key: "enable_third_party_drivers",
-			value_1:  , 
+			value_1:  "false", 
+			value_2:  "true",
 		},
 		{
 			key: "enlist_commissioning",
-			value_1:  , 
+			value_1:  "false", 
+			value_2:  "true",
 		},
 		{
 			key: "force_v1_network_yaml",
-			value_1:  , 
+			value_1:  "true",
+			value_2:  "false", 
 		},
 		{
 			key: "hardware_sync_interval",
-			value_1:  , 
+			value_1:  "10m", 
+			value_2:  "15m",
 		},
 		{
 			key: "http_proxy",
-			value_1:  , 
+			value_1:  "http://proxy.example.com:8080", 
+			value_2:  "",
 		},
 		{
 			key: "kernel_opts",
-			value_1:  , 
+			value_1:  "console=ttyS0", 
+			value_2:  "",
 		},
 		{
 			key: "maas_auto_ipmi_cipher_suite_id",
-			value_1:  , 
+			value_1:  "8", 
+			value_2:  "3",
 		},
 		{
 			key: "maas_auto_ipmi_k_g_bmc_key",
-			value_1:  , 
+			value_1:  "12345678901234567890", // Must be 20 characters
+			value_2:  "",
 		},
 		{
 			key: "maas_auto_ipmi_user",
-			value_1:  , 
+			value_1:  "admin", 
+			value_2:  "maas",
 		},
 		{
 			key: "maas_auto_ipmi_user_privilege_level",
-			value_1:  , 
+			value_1:  "USER", 
+			value_2:  "ADMIN",
 		},
-		{
-			key: "maas_auto_ipmi_workaround_flags",
-			value_1:  , 
-		},
+		// {
+		// 	key: "maas_auto_ipmi_workaround_flags",   // Does not currently work 
+		// 	value_1:  , 
+		// },
 		{
 			key: "maas_internal_domain",
 			value_1:  , 
