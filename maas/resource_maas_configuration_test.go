@@ -16,73 +16,6 @@ import (
 	// "github.com/canonical/gomaasclient/client"
 )
 
-// {
-// 	"active_discovery_interval", "10000"
-// 	"auto_vlan_creation", "false"
-// 	"boot_images_auto_import", "false"
-// 	"boot_images_no_proxy", "true"
-// 	"commissioning_distro_series", "jammy"
-// 	"completed_intro", "false"
-// 	"curtin_verbose", "false"
-// 	"default_boot_interface_link_type",
-// 	"default_distro_series",
-// 	"default_dns_ttl",
-// 	"default_min_hwe_kernel",
-// 	"default_osystem",
-// 	"default_storage_layout",
-// 	"disk_erase_with_quick_erase",
-// 	"disk_erase_with_secure_erase",
-// 	"dns_trusted_acl",
-// 	"dnssec_validation",
-// 	"enable_analytics",
-// 	"enable_disk_erasing_on_release",
-// 	"enable_http_proxy",
-// 	"enable_kernel_crash_dump",
-// 	"enable_third_party_drivers",
-// 	"enlist_commissioning",
-// 	"force_v1_network_yaml",
-// 	"hardware_sync_interval",
-// 	"http_proxy",
-// 	"kernel_opts",
-// 	"maas_auto_ipmi_cipher_suite_id",
-// 	"maas_auto_ipmi_k_g_bmc_key",
-// 	"maas_auto_ipmi_user",
-// 	"maas_auto_ipmi_user_privilege_level",
-// 	"maas_auto_ipmi_workaround_flags",
-// 	"maas_internal_domain",
-// 	"maas_name",
-// 	"maas_proxy_port",
-// 	"maas_syslog_port",
-// 	"max_node_commissioning_results",
-// 	"max_node_installation_results",
-// 	"max_node_release_results",
-// 	"max_node_testing_results",
-// 	"network_discovery",
-// 	"node_timeout",
-// 	"ntp_external_only",
-// 	"ntp_servers",
-// 	"prefer_v4_proxy",
-// 	"prometheus_enabled",
-// 	"prometheus_push_gateway",
-// 	"prometheus_push_interval",
-// 	"promtail_enabled",
-// 	"promtail_port",
-// 	"release_notifications",
-// 	"remote_syslog",
-// 	"session_length",
-// 	"subnet_ip_exhaustion_threshold_count",
-// 	"theme",
-// 	"tls_cert_expiration_notification_enabled",
-// 	"tls_cert_expiration_notification_interval",
-// 	"upstream_dns",
-// 	"use_peer_proxy",
-// 	"use_rack_proxy",
-// 	"vcenter_datacenter",
-// 	"vcenter_password",
-// 	"vcenter_server",
-// 	"vcenter_username",
-// 	"windows_kms_host",
-// }
 
 func getOriginalValue(key string) (string, error) {
 	client := testutils.TestAccProvider.Meta().(*maas.ClientConfig).Client
@@ -99,7 +32,9 @@ func getOriginalValue(key string) (string, error) {
 
 
 func TestAccResourceMAASConfiguration_basic(t * testing.T) {
-
+	// Test all MAAS Settings cases. Set twice to ensure a change is actually made
+	// incase defaults change, and value 2 is selected to be a typical value to 
+	// ensure dev environments aren't greatly changed between test runs.
 	testCases := []struct{
 		key string
 		value_1 string
@@ -107,8 +42,8 @@ func TestAccResourceMAASConfiguration_basic(t * testing.T) {
 	} {
 		{
 			key: "active_discovery_interval",
-			value_1: "10800",
-			value_2: "12000",
+			value_1: "21600",
+			value_2: "10800",
 		},
 		{
 			key:"auto_vlan_creation",
@@ -127,8 +62,8 @@ func TestAccResourceMAASConfiguration_basic(t * testing.T) {
 		},
 		{
 			key:"commissioning_distro_series",
-			value_1: "jammy",
-			value_2: "noble",
+			value_1: "noble",
+			value_2: "noble",    // Dev environment does not necessarily have multiple distros
 		},
 		{
 			key:"completed_intro",
@@ -147,8 +82,8 @@ func TestAccResourceMAASConfiguration_basic(t * testing.T) {
 		},
 		{
 			key: "default_distro_series",
-			value_1:  "jammy", 
-			value_2:  "noble",
+			value_1:  "noble", 
+			value_2:  "noble",    // Dev environment does not necessarily have multiple distros
 		},
 		{
 			key: "default_dns_ttl",
@@ -182,7 +117,8 @@ func TestAccResourceMAASConfiguration_basic(t * testing.T) {
 		},
 		{
 			key: "dns_trusted_acl",
-			value_1:  "",  // TODO
+			value_1:  "192.168.1.1 192.168.1.2",
+			value_2:  "",
 		},
 		{
 			key: "dnssec_validation",
@@ -265,135 +201,168 @@ func TestAccResourceMAASConfiguration_basic(t * testing.T) {
 		// },
 		{
 			key: "maas_internal_domain",
-			value_1:  , 
+			value_1:  "maas-internal-alt", 
+			value_2:  "maas-internal",
 		},
 		{
 			key: "maas_name",
-			value_1:  , 
+			value_1:  "maas-alt", 
+			value_2:  "maas-dev",
 		},
 		{
 			key: "maas_proxy_port",
-			value_1:  , 
+			value_1:  "8080", 
+			value_2:  "8000",
 		},
 		{
 			key: "maas_syslog_port",
-			value_1:  , 
+			value_1:  "49152",
+			value_2:  "5247",
 		},
 		{
 			key: "max_node_commissioning_results",
-			value_1:  , 
+			value_1:  "100",
+			value_2:  "10",
 		},
 		{
 			key: "max_node_installation_results",
-			value_1:  , 
+			value_1:  "5",
+			value_2:  "3",
 		},
 		{
 			key: "max_node_release_results",
-			value_1:  , 
+			value_1:  "5",
+			value_2:  "3",
 		},
 		{
 			key: "max_node_testing_results",
-			value_1:  , 
+			value_1:  "100",
+			value_2:  "10",
 		},
 		{
 			key: "network_discovery",
-			value_1:  , 
+			value_1:  "disabled", 
+			value_2:  "enabled",
 		},
 		{
 			key: "node_timeout",
-			value_1:  , 
+			value_1:  "10",
+			value_2:  "30",
 		},
 		{
 			key: "ntp_external_only",
-			value_1:  , 
+			value_1:  "true",
+			value_2: "false",
 		},
 		{
 			key: "ntp_servers",
-			value_1:  , 
+			value_1:  "ntp.example.com",
+			value_2: "ntp.ubuntu.com"  , 
 		},
 		{
 			key: "prefer_v4_proxy",
-			value_1:  , 
+			value_1:  "true",
+			value_2: "false",
 		},
 		{
 			key: "prometheus_enabled",
-			value_1:  , 
+			value_1:  "true",
+			value_2: "false",
 		},
 		{
 			key: "prometheus_push_gateway",
-			value_1:  , 
+			value_1:  "http://prometheus.example.com:9090",
+			value_2:  "",
 		},
 		{
 			key: "prometheus_push_interval",
-			value_1:  , 
+			value_1:  "80", 
+			value_2:  "60",
 		},
 		{
 			key: "promtail_enabled",
-			value_1:  , 
+			value_1:  "true", 
+			value_2:  "false",
 		},
 		{
 			key: "promtail_port",
-			value_1:  , 
+			value_1:  "49153", 
+			value_2:  "5238",
 		},
 		{
 			key: "release_notifications",
-			value_1:  , 
+			value_1:  "false", 
+			value_2:  "true",
 		},
 		{
 			key: "remote_syslog",
-			value_1:  , 
+			value_1:  "example.com:514", 
+			value_2:  "",
 		},
 		{
 			key: "session_length",
-			value_1:  , 
+			value_1:  "604800",  // 7 days
+			value_2:  "1209600", // 14 days
 		},
 		{
 			key: "subnet_ip_exhaustion_threshold_count",
-			value_1:  , 
+			value_1:  "24", 
+			value_2:  "16",
 		},
 		{
 			key: "theme",
-			value_1:  , 
+			value_1:  "sage", 
+			value_2:  "",
 		},
 		{
 			key: "tls_cert_expiration_notification_enabled",
-			value_1:  , 
+			value_1:  "true", 
+			value_2:  "false",
 		},
 		{
 			key: "tls_cert_expiration_notification_interval",
-			value_1:  , 
+			value_1:  "60", 
+			value_2:  "30",
 		},
 		{
 			key: "upstream_dns",
-			value_1:  , 
+			value_1:  "8.8.8.8", 
+			value_2:  "",
 		},
 		{
 			key: "use_peer_proxy",
-			value_1:  , 
+			value_1:  "true", 
+			value_2:  "false",
 		},
 		{
 			key: "use_rack_proxy",
-			value_1:  , 
+			value_1:  "false", 
+			value_2:  "true",
 		},
 		{
 			key: "vcenter_datacenter",
-			value_1:  , 
+			value_1:  "maas-vcenter", 
+			value_2:  "",
 		},
 		{
 			key: "vcenter_password",
-			value_1:  , 
+			value_1:  "dummy-password", 
+			value_2:  "",
 		},
 		{
 			key: "vcenter_server",
-			value_1:  , 
+			value_1:  "vcenter.example.com", 
+			value_2:  "",
 		},
 		{
 			key: "vcenter_username",
-			value_1:  , 
+			value_1:  "maas", 
+			value_2:  "",
 		},
 		{
 			key: "windows_kms_host",
-			value_1:  , 
+			value_1:  "kms.example.com", 
+			value_2:  "",
 		},
 		
 	}
@@ -405,21 +374,31 @@ func TestAccResourceMAASConfiguration_basic(t * testing.T) {
 		// }
 		// testCase.originalValue = val
 
-		resource.Test(t, resource.TestCase{
-			PreCheck:     func() { testutils.PreCheck(t, nil) },
-			Providers:   testutils.TestAccProviders,
-			CheckDestroy: testAccMAASConfigurationCheckDestroy,
-			ErrorCheck:   func(err error) error {return err},
-			Steps: []resource.TestStep{
-				{	
-					Config: testAccMAASConfigurationConfigBasic(testCase.key, testCase.value_1),
-					Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr("maas_configuration.test", "value", testCase.value_1),
+		t.Run(testCase.key, func(t *testing.T) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:     func() { testutils.PreCheck(t, nil) },
+				Providers:   testutils.TestAccProviders,
+				CheckDestroy: testAccMAASConfigurationCheckDestroy,
+				ErrorCheck:   func(err error) error {return err},
+				Steps: []resource.TestStep{
+					{	
+						Config: testAccMAASConfigurationConfigBasic(testCase.key, testCase.value_1),
+						Check: resource.ComposeTestCheckFunc(
 							testAccMAASConfigurationCheckExists("maas_configuration.test"),
 							resource.TestCheckResourceAttr("maas_configuration.test", "key", testCase.key),
-					),
+							resource.TestCheckResourceAttr("maas_configuration.test", "value", testCase.value_1),
+						),
+					},
+					{
+						Config: testAccMAASConfigurationConfigBasic(testCase.key, testCase.value_2),
+						Check: resource.ComposeTestCheckFunc(
+							testAccMAASConfigurationCheckExists("maas_configuration.test"),
+							resource.TestCheckResourceAttr("maas_configuration.test", "key", testCase.key),
+							resource.TestCheckResourceAttr("maas_configuration.test", "value", testCase.value_2),
+						),
+					},
 				},
-			},
+			})
 		})
 	}
 }
