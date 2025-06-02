@@ -38,13 +38,16 @@ func resourceMAASConfiguration() *schema.Resource {
 
 func resourceMAASConfigurationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	log.Println("running resourceMAASConfigurationCreate")
+
 	client := meta.(*ClientConfig).Client
 
 	log.Println("Getting values from state")
+
 	key := d.Get("key").(string)
 	value := d.Get("value").(string)
 
 	log.Println("Setting key and value in MAAS")
+
 	err := client.MAASServer.Post(key, value)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("error setting key %v with value %v in MAAS: %v", key, value, err))
@@ -52,19 +55,20 @@ func resourceMAASConfigurationCreate(ctx context.Context, d *schema.ResourceData
 
 	log.Println("Setting ID in state")
 	d.SetId(key)
-	return resourceMAASConfigurationRead(ctx, d, meta)
 
+	return resourceMAASConfigurationRead(ctx, d, meta)
 }
 
 func resourceMAASConfigurationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	log.Println("running resourceMAASConfigurationRead")
+
 	client := meta.(*ClientConfig).Client
 
 	value, err := client.MAASServer.Get(d.Get("key").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	
+
 	tfState := map[string]any{
 		"value": strings.Trim(string(value), "\""),
 	}
@@ -77,12 +81,14 @@ func resourceMAASConfigurationRead(ctx context.Context, d *schema.ResourceData, 
 
 func resourceMAASConfigurationUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	log.Println("running resourceMAASConfigurationUpdate")
+
 	client := meta.(*ClientConfig).Client
 
 	err := client.MAASServer.Post(d.Get("key").(string), d.Get("value").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	return resourceMAASConfigurationRead(ctx, d, meta)
 }
 
@@ -90,8 +96,6 @@ func resourceMAASConfigurationDelete(ctx context.Context, d *schema.ResourceData
 	log.Println("running resourceMAASConfigurationDelete")
 	// Currently, settings cannot be reverted to their default values through the API. For now, just remove the key from the state.
 	d.SetId("")
+
 	return nil
 }
-
-
-
