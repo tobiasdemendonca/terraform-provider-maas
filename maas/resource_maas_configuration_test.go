@@ -275,11 +275,11 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 			value1: "false",
 			value2: "true",
 		},
-		// {
-		// 	key:    "remote_syslog",
-		// 	value1: "example.com:514",
-		// 	value2: "",					// Returning null if unset, needs fixing
-		// },
+		{
+			key:    "remote_syslog",
+			value1: "example.com:514",
+			value2: "",					// Returning null if unset
+		},
 		{
 			key:    "session_length",
 			value1: "604800",  // 7 days

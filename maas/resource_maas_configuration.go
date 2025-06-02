@@ -34,6 +34,14 @@ func resourceMAASConfiguration() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Value for the configuration setting, always specified as a string",
+				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+					if d.Get("key").(string) == "remote_syslog" {
+						if newValue == "" {
+							return oldValue == "null"
+						}
+					}
+					return oldValue == newValue
+				},
 			},
 		},
 	}
