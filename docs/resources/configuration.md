@@ -50,12 +50,3 @@ resource "maas_configuration" "test_unset" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-## Import
-
-Import is supported using the following syntax:
-
-```shell
-# Import a MAAS configuration setting using the key as the identifier
-terraform import maas_configuration.test release_notifications
-```
