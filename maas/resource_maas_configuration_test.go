@@ -2,6 +2,7 @@ package maas_test
 
 import (
 	"fmt"
+	"os"
 	"terraform-provider-maas/maas/testutils"
 	"testing"
 
@@ -55,8 +56,10 @@ func TestNormalizeConfigValue(t *testing.T) {
 }
 
 func TestAccResourceMAASConfiguration_basic(t *testing.T) {
+	availableDistroSeries := os.Getenv("TF_ACC_CONFIGURATION_DISTRO_SERIES")
+
 	// Test all MAAS Settings cases. Set twice to ensure a change is actually made
-	// incase defaults change, and value 2 is selected to be a typical value to
+	// in case defaults change, and value 2 is selected to be a typical value to
 	// ensure dev environments aren't greatly changed between test runs.
 	testCases := []struct {
 		key    string
@@ -85,8 +88,8 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 		},
 		{
 			key:    "commissioning_distro_series",
-			value1: "noble",
-			value2: "noble", // Dev environment does not necessarily have multiple distros
+			value1: availableDistroSeries,
+			value2: availableDistroSeries, // Dev environment does not necessarily have multiple distros
 		},
 		{
 			key:    "completed_intro",
@@ -105,8 +108,8 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 		},
 		{
 			key:    "default_distro_series",
-			value1: "noble",
-			value2: "noble", // Dev environment does not necessarily have multiple distros
+			value1: availableDistroSeries,
+			value2: availableDistroSeries, // Dev environment does not necessarily have multiple distros
 		},
 		{
 			key:    "default_dns_ttl",
@@ -392,7 +395,7 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.key, func(t *testing.T) {
 			resource.ParallelTest(t, resource.TestCase{
-				PreCheck:     func() { testutils.PreCheck(t, nil) },
+				PreCheck:     func() { testutils.PreCheck(t, []string{"TF_ACC_CONFIGURATION_DISTRO_SERIES"}) },
 				Providers:    testutils.TestAccProviders,
 				CheckDestroy: testAccMAASConfigurationCheckDestroy,
 				ErrorCheck:   func(err error) error { return err },

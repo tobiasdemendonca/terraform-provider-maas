@@ -19,16 +19,13 @@ func resourceMAASConfiguration() *schema.Resource {
 		ReadContext:   resourceMAASConfigurationRead,
 		UpdateContext: resourceMAASConfigurationUpdate,
 		DeleteContext: resourceMAASConfigurationDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
 		Schema: map[string]*schema.Schema{
 			"key": {
 				Type:             schema.TypeString,
 				Required:         true,
 				ForceNew:         true,
 				Description:      "Key corresponding to the configuration setting.",
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringDoesNotMatch(regexp.MustCompile("maas_auto_ipmi_workaround_flags"), "Key 'maas_auto_ipmi_workaround_flags' cannot currently be set through Terraform due to a [bug in MAAS](https://bugs.launchpad.net/maas/+bug/2112191). A fix will be worked on for a future MAAS releases.")),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringDoesNotMatch(regexp.MustCompile("maas_auto_ipmi_workaround_flags"), "Key 'maas_auto_ipmi_workaround_flags' cannot currently be set through Terraform due to a [bug in MAAS](https://bugs.launchpad.net/maas/+bug/2112191).")),
 			},
 			"value": {
 				Type:        schema.TypeString,
