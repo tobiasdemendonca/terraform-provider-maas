@@ -37,6 +37,7 @@ func dataSourceMAASConfigurationRead(ctx context.Context, d *schema.ResourceData
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("error getting key %v from MAAS: %v", key, err))
 	}
+
 	d.SetId(key)
 
 	tfState := map[string]any{
@@ -46,5 +47,6 @@ func dataSourceMAASConfigurationRead(ctx context.Context, d *schema.ResourceData
 	if err := setTerraformState(d, tfState); err != nil {
 		return diag.FromErr(fmt.Errorf("error setting Terraform state for key %v: %v", key, err))
 	}
+
 	return nil
 }
