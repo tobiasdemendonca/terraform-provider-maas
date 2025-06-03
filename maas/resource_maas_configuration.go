@@ -50,6 +50,7 @@ func resourceMAASConfigurationCreate(ctx context.Context, d *schema.ResourceData
 	}
 
 	d.SetId(key)
+
 	return resourceMAASConfigurationRead(ctx, d, meta)
 }
 
