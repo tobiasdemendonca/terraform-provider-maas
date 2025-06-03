@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 
@@ -41,25 +40,16 @@ func resourceMAASConfiguration() *schema.Resource {
 }
 
 func resourceMAASConfigurationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Println("running resourceMAASConfigurationCreate")
-
 	client := meta.(*ClientConfig).Client
-
-	log.Println("Getting values from state")
-
 	key := d.Get("key").(string)
 	value := d.Get("value").(string)
-
-	log.Println("Setting key and value in MAAS")
 
 	err := client.MAASServer.Post(key, value)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("error setting key %v with value %v in MAAS: %v", key, value, err))
 	}
 
-	log.Println("Setting ID in state")
 	d.SetId(key)
-
 	return resourceMAASConfigurationRead(ctx, d, meta)
 }
 
@@ -85,8 +75,6 @@ func resourceMAASConfigurationRead(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceMAASConfigurationUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Println("running resourceMAASConfigurationUpdate")
-
 	client := meta.(*ClientConfig).Client
 
 	err := client.MAASServer.Post(d.Get("key").(string), d.Get("value").(string))
@@ -98,10 +86,8 @@ func resourceMAASConfigurationUpdate(ctx context.Context, d *schema.ResourceData
 }
 
 func resourceMAASConfigurationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Println("running resourceMAASConfigurationDelete")
 	// Currently, settings cannot be reverted to their default values through the API. For now, just remove the key from the state.
 	d.SetId("")
-
 	return nil
 }
 
