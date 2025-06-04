@@ -23,7 +23,6 @@ func resourceMAASConfiguration() *schema.Resource {
 			"key": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ForceNew:         true,
 				Description:      "Key corresponding to the configuration setting.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringDoesNotMatch(regexp.MustCompile("maas_auto_ipmi_workaround_flags"), "Key 'maas_auto_ipmi_workaround_flags' cannot currently be set through Terraform due to a [bug in MAAS](https://bugs.launchpad.net/maas/+bug/2112191).")),
 			},
@@ -73,6 +72,11 @@ func resourceMAASConfigurationRead(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceMAASConfigurationUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	if d.HasChange("key") {
+		oldVal, newVal := d.GetChange("key")
+		return diag.Errorf("Changing 'key' from %v to %v is not allowed. Please recreate the resource.", oldVal, newVal)
+	}
+
 	client := meta.(*ClientConfig).Client
 
 	err := client.MAASServer.Post(d.Get("key").(string), d.Get("value").(string))
