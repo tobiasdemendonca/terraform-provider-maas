@@ -81,7 +81,7 @@ If you're interested in contributing to the provider, please see the [Developmen
 
 ## Testing
 
-Unit tests run with every pull request and merge to master. The end to end tests run on a nightly basis against a hosted MAAS deployment and are checked on each PR, with a warning if failed.
+The end to end tests run by the MAAS team's internal CI on a nightly basis against master, and on each PR.
 
 ## :warning: Repository ownership and provider name change
 
