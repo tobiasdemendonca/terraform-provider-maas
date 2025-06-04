@@ -10,17 +10,20 @@ This repository contains the source code for the Terraform provider for MAAS, wh
 - [Release process](RELEASING.md)
 - [Changelog](CHANGELOG.md)
 
+Additional resources:
+- [MAAS documentation](https://maas.io/docs)
+- [MAAS Launchpad](https://launchpad.net/maas) and [MAAS GitHub mirror](https://github.com/canonical/maas)
+- [Terraform documentation](https://www.terraform.io/docs)
+
+## Usage
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.4.x
-- [Go](https://golang.org/doc/install) >= 1.23
 - A MAAS installation
-
-## Getting started
 
 ### Usage
 
-The provider is available from the [Terraform Registry](https://registry.terraform.io/providers/canonical/maas/latest), and should be available to use when used in your Terraform configuration, without the need for any additional steps.
+The provider is available from the [Terraform Registry](https://registry.terraform.io/providers/canonical/maas/latest). The specified version will be found and installed automatically when specified in the `required_providers` section of your terraform configuration file. An example using the latest version is shown below:
 
 ```hcl
 terraform {
@@ -39,11 +42,14 @@ provider "maas" {
   installation_method = "snap"
 }
 
-# <your MAAS Terraform configuration here>
-```
-### Provider configuration
+# Your MAAS Terraform configuration here, for example: 
+resource "maas_fabric" "test_fabric" {
+  name = "tf-fabric"
+}
 
-The provider accepts the following config options:
+```
+
+where the provider accepts the following config options:
 
 - **api_key**: [MAAS API key](https://maas.io/docs/snap/3.0/cli/maas-cli#heading--log-in-required).
 - **api_url**: URL for the MAAS API server (eg: <http://127.0.0.1:5240/MAAS>).
@@ -75,7 +81,7 @@ If you're interested in contributing to the provider, please see the [Developmen
 
 ## Testing
 
-Unit tests run with every pull request and merge to master. The end to end tests run on a nightly basis against a hosted MAAS deployment, results can be found [here](https://raw.githubusercontent.com/canonical/maas-terraform-e2e-tests/main/results.json?token=GHSAT0AAAAAAB3FX6R5C67Q4LH7ADOO5O3IY4ODCNA) and are checked on each PR, with a warning if failed.
+Unit tests run with every pull request and merge to master. The end to end tests run on a nightly basis against a hosted MAAS deployment and are checked on each PR, with a warning if failed.
 
 ## :warning: Repository ownership and provider name change
 
@@ -123,8 +129,3 @@ References:
 
 ---
 
-## Additional resources
-
-- [MAAS documentation](https://maas.io/docs)
-- [MAAS Launchpad](https://launchpad.net/maas) and [MAAS GitHub mirror](https://github.com/canonical/maas)
-- [Terraform documentation](https://www.terraform.io/docs)
