@@ -129,3 +129,6 @@ References:
 
 ---
 
+## License
+
+See [License](LICENSE).
