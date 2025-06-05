@@ -329,7 +329,7 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 			key:    "tls_cert_expiration_notification_enabled",
 			value1: "true",
 			value2: "false",
-		}, 
+		},
 		{
 			key:    "tls_cert_expiration_notification_interval",
 			value1: "60",
