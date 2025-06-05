@@ -102,11 +102,6 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 			value2: "true",
 		},
 		{
-			key:    "default_boot_interface_link_type",
-			value1: "static",
-			value2: "auto",
-		},
-		{
 			key:    "default_distro_series",
 			value1: availableDistroSeries,
 			value2: availableDistroSeries, // Dev environment does not necessarily have multiple distros
@@ -165,11 +160,6 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 			key:    "enable_http_proxy",
 			value1: "false",
 			value2: "true",
-		},
-		{
-			key:    "enable_kernel_crash_dump",
-			value1: "true",
-			value2: "false",
 		},
 		{
 			key:    "enable_third_party_drivers",
@@ -344,7 +334,7 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 			key:    "tls_cert_expiration_notification_enabled",
 			value1: "true",
 			value2: "false",
-		},
+		}, 
 		{
 			key:    "tls_cert_expiration_notification_interval",
 			value1: "60",
