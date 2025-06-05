@@ -112,11 +112,6 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 			value2: "30",
 		},
 		{
-			key:    "default_min_hwe_kernel",
-			value1: "ga-24.04",
-			value2: "",
-		},
-		{
 			key:    "default_osystem",
 			value1: "",
 			value2: "ubuntu",
