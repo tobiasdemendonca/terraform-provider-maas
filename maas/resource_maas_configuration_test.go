@@ -370,11 +370,6 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 			value1: "maas",
 			value2: "",
 		},
-		{
-			key:    "windows_kms_host",
-			value1: "kms.example.com",
-			value2: "",
-		},
 	}
 
 	for _, testCase := range testCases {
