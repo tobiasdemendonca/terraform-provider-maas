@@ -4,7 +4,7 @@ This repository contains the source code for the Terraform provider for MAAS, wh
 
 ## Quick links
 
-- [Our latest provider documentation (Canonical/MAAS)](https://registry.terraform.io/providers/canonical/maas/latest/docs) - the best place    for detailed information about what the provider does and how to use it.
+- [Our latest provider documentation (Canonical/MAAS)](https://registry.terraform.io/providers/canonical/maas/latest/docs) - the best place for detailed information about what the provider does and how to use it.
 - [Provider documentation for v2.2.0 and below (MAAS/MAAS)](https://registry.terraform.io/providers/maas/maas/latest/docs) - no longer maintained.
 - [Development Guide](DEVELOPMENT.md)
 - [Release process](RELEASING.md)
