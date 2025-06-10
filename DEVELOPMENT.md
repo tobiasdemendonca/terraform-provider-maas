@@ -169,7 +169,7 @@ To run the tests:
         make testacc
         ```
         > [!NOTE]
-        > You may need to specify specific environment variables for some tests to pass, for example machine ids. Add these to your `env.sh` file before sourcing it again, if required:
+        > You may need to set specific environment variables for some tests to pass, for example machine ids. Add these to your `env.sh` file before sourcing it again, if required:
         > ```bash
         > export TF_ACC_NETWORK_INTERFACE_MACHINE=<system_id>   # b68rn4
         > export TF_ACC_TAG_MACHINES=<system_id>                # b68rn4
@@ -183,7 +183,7 @@ To run the tests:
         ```
     - Run a group of acceptance tests with names matching the regex:
         ```bash
-        make testacc TESTARGS="-run=TestAcc<resource_name>_"      
+        make testacc TESTARGS="-run=TestAcc<resource_name>"      
         ```
 
 ## Getting Help
