@@ -42,7 +42,7 @@ func resourceMAASConfigurationCreate(ctx context.Context, d *schema.ResourceData
 
 	err := client.MAASServer.Post(key, value)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("error setting key %v with value %v in MAAS: %v", key, value, err))
+		return diag.FromErr(fmt.Errorf("error setting key %q with value %q in MAAS: %v", key, value, err))
 	}
 
 	d.SetId(key)

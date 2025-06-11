@@ -375,10 +375,9 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.key, func(t *testing.T) {
 			resource.ParallelTest(t, resource.TestCase{
-				PreCheck:     func() { testutils.PreCheck(t, []string{"TF_ACC_CONFIGURATION_DISTRO_SERIES"}) },
-				Providers:    testutils.TestAccProviders,
-				CheckDestroy: testAccMAASConfigurationCheckDestroy,
-				ErrorCheck:   func(err error) error { return err },
+				PreCheck:   func() { testutils.PreCheck(t, []string{"TF_ACC_CONFIGURATION_DISTRO_SERIES"}) },
+				Providers:  testutils.TestAccProviders,
+				ErrorCheck: func(err error) error { return err },
 				Steps: []resource.TestStep{
 					{
 						Config: testAccMAASConfigurationConfigBasic(testCase.key, testCase.value1),
@@ -428,11 +427,6 @@ func testAccMAASConfigurationCheckExists(rn string) resource.TestCheckFunc {
 
 		return nil
 	}
-}
-
-func testAccMAASConfigurationCheckDestroy(s *terraform.State) error {
-	_ = testutils.TestAccProvider.Meta().(*maas.ClientConfig).Client
-	return nil
 }
 
 func testAccMAASConfigurationConfigBasic(key string, value string) string {
