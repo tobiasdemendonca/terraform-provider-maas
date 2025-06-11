@@ -375,9 +375,10 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.key, func(t *testing.T) {
 			resource.ParallelTest(t, resource.TestCase{
-				PreCheck:   func() { testutils.PreCheck(t, []string{"TF_ACC_CONFIGURATION_DISTRO_SERIES"}) },
-				Providers:  testutils.TestAccProviders,
-				ErrorCheck: func(err error) error { return err },
+				PreCheck:     func() { testutils.PreCheck(t, []string{"TF_ACC_CONFIGURATION_DISTRO_SERIES"}) },
+				Providers:    testutils.TestAccProviders,
+				ErrorCheck:   func(err error) error { return err },
+				CheckDestroy: testAccMAASConfigurationCheckDestroy,
 				Steps: []resource.TestStep{
 					{
 						Config: testAccMAASConfigurationConfigBasic(testCase.key, testCase.value1),
@@ -427,6 +428,11 @@ func testAccMAASConfigurationCheckExists(rn string) resource.TestCheckFunc {
 
 		return nil
 	}
+}
+
+// Not required for this resource as no resources are created, but is required by the linter.
+func testAccMAASConfigurationCheckDestroy(s *terraform.State) error {
+	return nil
 }
 
 func testAccMAASConfigurationConfigBasic(key string, value string) string {
