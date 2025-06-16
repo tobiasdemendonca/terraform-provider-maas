@@ -23,7 +23,7 @@ Additional resources:
 
 ### Usage
 
-The provider is available from the [Terraform Registry](https://registry.terraform.io/providers/canonical/maas/latest). The specified version will be found and installed automatically when specified in the `required_providers` section of your terraform configuration file. An example using the latest version is shown below:
+The provider is available from the [Terraform Registry](https://registry.terraform.io/providers/canonical/maas/latest). The specified version will be found and installed automatically when specified in the `required_providers` section of your Terraform configuration file. An example using the latest version is shown below:
 
 ```hcl
 terraform {
