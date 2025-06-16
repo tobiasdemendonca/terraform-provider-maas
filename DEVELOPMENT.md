@@ -164,7 +164,7 @@ To run the tests:
         ```bash
         make test
         ```
-    - Run both the unit tests and all terraform acceptance tests:
+    - Run both the unit tests and all Terraform acceptance tests:
         ```bash
         make testacc
         ```
