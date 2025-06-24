@@ -27,6 +27,6 @@ Builds and releases are automated with GitHub Actions and GoReleaser. There are 
    
    The GitHub Action creates a "draft" release. Go to [Releases](https://github.com/canonical/terraform-provider-maas/releases) to open it, select `edit`, and select `Publish release` if you are happy. 
 
-4. Verify the release is published by: 
-   1. Checking the release is now the latest published under [Releases](https://github.com/canonical/terraform-provider-maas/releases). 
-   2. Checking the [HashiCorp Registry provider page](https://registry.terraform.io/providers/canonical/maas/latest) is displaying the released version as latest. This could take approximately 30 minutes to update.
+4. Verify the release is published: 
+   1. Check the release is now the latest published under [Releases](https://github.com/canonical/terraform-provider-maas/releases). 
+   2. Check the [HashiCorp Registry provider page](https://registry.terraform.io/providers/canonical/maas/latest) is displaying the released version as latest. This could take approximately 30 minutes to update.
