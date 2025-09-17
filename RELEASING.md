@@ -6,7 +6,7 @@ Builds and releases are automated with GitHub Actions and GoReleaser. There are 
 
 1. Start the release action:
 
-   Assuming `upstream` is the remote name pointing to the canonical/terraform-provider-maas repository:
+   Assuming `upstream` is the remote name pointing to the `canonical/terraform-provider-maas` repository:
    1. First, checkout the master branch and pull the latest changes:
 
       ```shell
@@ -21,7 +21,7 @@ Builds and releases are automated with GitHub Actions and GoReleaser. There are 
       git tag vX.Y.Z
       git push upstream tag vX.Y.Z
       ```
-   The release action can be viewed under [Actions](https://github.com/canonical/terraform-provider-maas/actions).
+   The release action can be viewed under [Actions](https://github.com/canonical/terraform-provider-maas/actions/workflows/release.yml).
 
 1. Publish the release:
 
