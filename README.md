@@ -16,7 +16,7 @@ Additional resources:
 - [Terraform documentation](https://www.terraform.io/docs)
 
 ## Usage
-## Requirements
+### Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.4.x
 - A MAAS installation
@@ -42,7 +42,7 @@ provider "maas" {
   installation_method = "snap"
 }
 
-# Your MAAS Terraform configuration here, for example: 
+# Your MAAS Terraform configuration here, for example:
 resource "maas_fabric" "test_fabric" {
   name = "tf-fabric"
 }
