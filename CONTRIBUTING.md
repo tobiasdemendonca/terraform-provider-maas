@@ -94,7 +94,7 @@ Assuming you have already setup dev-overrides:
 Tests are written as advised in the [Terraform docs](https://developer.hashicorp.com/terraform/plugin/sdkv2/testing). They are split into unit tests and acceptance tests, with the latter creating real resources in the MAAS environment. Therefore, you will need to ensure MAAS is running locally for these tests to pass.
 
 To run the tests:
-1. Ensure MAAS_API_KEY and MAAS_API_URL environment variables are set in your shell, relevant to your running MAAS installation.
+1. Ensure `MAAS_API_KEY` and `MAAS_API_URL` environment variables are set in your shell, relevant to your running MAAS installation.
 
 2. Run the tests:
     - Run the unit tests:
