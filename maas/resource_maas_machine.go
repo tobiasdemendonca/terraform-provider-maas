@@ -175,6 +175,30 @@ func resourceMAASMachine() *schema.Resource {
 				Computed:    true,
 				Description: "The zone of the machine. This is computed if it's not set.",
 			},
+			"commissioning_scripts": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "Commissioning script names and tags to be run. By default all custom commissioning scripts are run. Built-in commissioning scripts always run. Selecting 'update_firmware' or 'configure_hba' will run firmware updates or configure HBA's on matching machines.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"testing_scripts": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "Testing scripts names and tags to be run. By default all tests tagged 'testing' will be run. Set to ['none'] to disable running tests.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"script_parameters": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "Scripts specified to run may define their own parameters. These parameters may be passed as parameter name (key) value pairs as a map. Optionally a parameter may have the script name prepended to have that parameter only apply to that specific script, e.g. my-script_param=value.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(30 * time.Minute),
