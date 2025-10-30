@@ -202,6 +202,7 @@ func resourceMAASMachine() *schema.Resource {
 		},
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(30 * time.Minute),
+			Update: schema.DefaultTimeout(30 * time.Minute),
 		},
 	}
 }
@@ -215,7 +216,7 @@ func resourceMachineCreate(ctx context.Context, d *schema.ResourceData, meta any
 		return diag.FromErr(err)
 	}
 
-	machine, err := client.Machines.Create(getMachineParams(d), powerParams)
+	machine, err := client.Machines.Create(getMachineCreateParams(d), powerParams)
 	if err != nil {
 		// Clean up trailing resources, as the gomaasclient does not return the created machine on error
 		badMachine, errDel := getMachine(client, d.Get("pxe_mac_address").(string))
@@ -286,6 +287,8 @@ func resourceMachineRead(ctx context.Context, d *schema.ResourceData, meta any) 
 func resourceMachineUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*ClientConfig).Client
 
+	scriptsHaveChanged := d.HasChange("commissioning_scripts") || d.HasChange("testing_scripts") || d.HasChange("script_parameters")
+
 	// Update machine
 	machine, err := client.Machine.Get(d.Id())
 	if err != nil {
@@ -297,9 +300,22 @@ func resourceMachineUpdate(ctx context.Context, d *schema.ResourceData, meta any
 		return diag.FromErr(err)
 	}
 
-	if _, err := client.Machine.Update(machine.SystemID, getMachineParams(d), powerParams); err != nil {
+	if _, err := client.Machine.Update(machine.SystemID, getMachineUpdateParams(d), powerParams); err != nil {
 		return diag.FromErr(err)
 	}
+
+	if scriptsHaveChanged {
+		machine, err = client.Machine.Commssion(machine.SytemID, getMachineCommissionParams(d))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		// Wait for machine to be ready
+		_, err = waitForMachineStatus(ctx, client, machine.SystemID, []string{"Commissioning", "Testing"}, []string{"Ready"}, d.Timeout(schema.TimeoutCreate))
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
 
 	return resourceMachineRead(ctx, d, meta)
 }
@@ -331,8 +347,25 @@ func getMachinePowerParams(d *schema.ResourceData) (map[string]any, error) {
 	return powerParams, nil
 }
 
-func getMachineParams(d *schema.ResourceData) *entity.MachineParams {
-	return &entity.MachineParams{
+func getMachineCreateParams(d *schema.ResourceData) *entity.MachineParams {
+	return &entity.MachineCreateParams{
+		Commission:   true,
+		PowerType:    d.Get("power_type").(string),
+		MACAddresses: []string{d.Get("pxe_mac_address").(string)},
+		Architecture: d.Get("architecture").(string),
+		MinHWEKernel: d.Get("min_hwe_kernel").(string),
+		Hostname:     d.Get("hostname").(string),
+		Domain:       d.Get("domain").(string),
+		Zone:         d.Get("zone").(string),
+		Pool:         d.Get("pool").(string),
+		CommissioningScripts: listAsString(d.Get("commissioning_scripts").([]any)),
+		TestingScripts:       listAsString(d.Get("testing_scripts").([]any)),
+		ScriptParameters:     d.Get("script_parameters").(map[string]any),
+	}
+}
+
+func getMachineUpdateParams(d *schema.ResourceData) *entity.MachineParams {
+	return &entity.MachineCreateParams{
 		Commission:   true,
 		PowerType:    d.Get("power_type").(string),
 		MACAddresses: []string{d.Get("pxe_mac_address").(string)},
@@ -344,6 +377,15 @@ func getMachineParams(d *schema.ResourceData) *entity.MachineParams {
 		Pool:         d.Get("pool").(string),
 	}
 }
+
+func getMachineCommissionParams(d *schema.ResourceData) *entity.MachineParams {
+	return &entity.MachineCommissionParams{
+		CommissioningScripts: listAsString(d.Get("commissioning_scripts").([]any)),
+		TestingScripts:       listAsString(d.Get("testing_scripts").([]any)),
+		ScriptParameters:     d.Get("script_parameters").(map[string]any),
+	}
+}
+
 
 func getMachineStatusFunc(client *client.Client, systemID string) retry.StateRefreshFunc {
 	return func() (any, string, error) {
