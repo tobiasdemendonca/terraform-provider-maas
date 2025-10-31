@@ -241,8 +241,8 @@ func resourceMachineCreate(ctx context.Context, d *schema.ResourceData, meta any
 		return diag.FromErr(err)
 	}
 
-	// Return updated machine
-	return resourceMachineUpdate(ctx, d, meta)
+	// Read machine info
+	return resourceMachineRead(ctx, d, meta)
 }
 
 func resourceMachineRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -305,7 +305,7 @@ func resourceMachineUpdate(ctx context.Context, d *schema.ResourceData, meta any
 	}
 
 	if scriptsHaveChanged {
-		machine, err = client.Machine.Commssion(machine.SytemID, getMachineCommissionParams(d))
+		machine, err = client.Machine.Commission(machine.SystemID, getMachineCommissionParams(d))
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -347,7 +347,7 @@ func getMachinePowerParams(d *schema.ResourceData) (map[string]any, error) {
 	return powerParams, nil
 }
 
-func getMachineCreateParams(d *schema.ResourceData) *entity.MachineParams {
+func getMachineCreateParams(d *schema.ResourceData) *entity.MachineCreateParams {
 	return &entity.MachineCreateParams{
 		Commission:   true,
 		PowerType:    d.Get("power_type").(string),
@@ -360,12 +360,12 @@ func getMachineCreateParams(d *schema.ResourceData) *entity.MachineParams {
 		Pool:         d.Get("pool").(string),
 		CommissioningScripts: listAsString(d.Get("commissioning_scripts").([]any)),
 		TestingScripts:       listAsString(d.Get("testing_scripts").([]any)),
-		ScriptParameters:     d.Get("script_parameters").(map[string]any),
+		ScriptParams: d.Get("script_parameters").(map[string]any),
 	}
 }
 
-func getMachineUpdateParams(d *schema.ResourceData) *entity.MachineParams {
-	return &entity.MachineCreateParams{
+func getMachineUpdateParams(d *schema.ResourceData) *entity.MachineUpdateParams {
+	return &entity.MachineUpdateParams{
 		Commission:   true,
 		PowerType:    d.Get("power_type").(string),
 		MACAddresses: []string{d.Get("pxe_mac_address").(string)},
@@ -378,11 +378,11 @@ func getMachineUpdateParams(d *schema.ResourceData) *entity.MachineParams {
 	}
 }
 
-func getMachineCommissionParams(d *schema.ResourceData) *entity.MachineParams {
+func getMachineCommissionParams(d *schema.ResourceData) *entity.MachineCommissionParams {
 	return &entity.MachineCommissionParams{
 		CommissioningScripts: listAsString(d.Get("commissioning_scripts").([]any)),
 		TestingScripts:       listAsString(d.Get("testing_scripts").([]any)),
-		ScriptParameters:     d.Get("script_parameters").(map[string]any),
+		ScriptParams:        d.Get("script_parameters").(map[string]any),
 	}
 }
 
