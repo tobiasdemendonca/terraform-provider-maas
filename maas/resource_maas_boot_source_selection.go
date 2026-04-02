@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -323,6 +324,10 @@ func awaitImportComplete(client *client.Client, os string, release string, arche
 		if err != nil {
 			return retry.NonRetryableError(err)
 		}
+		
+		for resourceIndex, resource := range allResources {
+			log.Printf("Boot resource %d:\n%+v", resourceIndex, resource.Name)
+		}
 
 		// Confirm that for all user provided architectures in the boot source selection there is at least one boot resource found.
 		// If any architecture is missing, then the import is still ongoing. To perform this operation, the usage of sets is required
@@ -331,6 +336,7 @@ func awaitImportComplete(client *client.Client, os string, release string, arche
 		archesFound := set.New[string](0)
 
 		for _, resource := range allResources {
+
 			if resource.Name == fmt.Sprintf("%s/%s", os, release) {
 				archesFound.Insert(strings.Split(resource.Architecture, "/")[0])
 
@@ -346,6 +352,9 @@ func awaitImportComplete(client *client.Client, os string, release string, arche
 				// resource. e.g., 24.04-ga-24.04-20250424. Each set has a complete boolean flag which, if set, represents the
 				// completion of the image synchronization. If not, that means that the import is still ongoing.
 				for _, resourceSet := range resourceDetails.Sets {
+					log.Print()
+					log.Printf("ResourceSet total file count: %d", len(resourceSet.Files))
+					log.Printf("ResourceSet processed:\n%v", resourceSet.Files)
 					if !resourceSet.Complete {
 						return retry.RetryableError(fmt.Errorf("image still importing, waiting... "))
 					}
