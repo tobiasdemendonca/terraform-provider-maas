@@ -119,7 +119,7 @@ func TestAccResourceMAASConfiguration_basic(t *testing.T) {
 		{
 			key:    "default_storage_layout",
 			value1: "bcache",
-			value2: "blank",
+			value2: "flat",
 		},
 		{
 			key:    "disk_erase_with_quick_erase",
