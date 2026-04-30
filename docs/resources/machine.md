@@ -153,6 +153,7 @@ Optional:
 
 Read-Only:
 
+- `id` (Number)
 - `id_path` (String)
 - `model` (String)
 - `name` (String)
