@@ -86,6 +86,11 @@ func resourceMAASMachine() *schema.Resource {
 				Description: "A list of block devices attached to the machine.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The ID of the block device.",
+						},
 						"id_path": {
 							Type:        schema.TypeString,
 							Computed:    true,
@@ -518,6 +523,7 @@ func getAllBlockDeviceMachineParameters(blockDevices []entity.BlockDevice) []map
 	blockDeviceParams := make([]map[string]any, len(blockDevices))
 	for i, blockDevice := range blockDevices {
 		blockDeviceParams[i] = map[string]any{
+			"id":             blockDevice.ID,
 			"name":           blockDevice.Name,
 			"size_gigabytes": int(math.Round(float64(blockDevice.Size) / GigaBytes)),
 			"id_path":        blockDevice.IDPath,
