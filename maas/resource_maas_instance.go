@@ -7,6 +7,7 @@ import (
 
 	"github.com/canonical/gomaasclient/client"
 	"github.com/canonical/gomaasclient/entity"
+	"github.com/canonical/gomaasclient/entity/node"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -345,7 +346,12 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, meta any)
 	// Get MAAS machine
 	machine, err := client.Machine.Get(d.Id())
 	if err != nil {
-		return diag.FromErr(err)
+		return unsetIfNotFoundError(d, err)
+	}
+	// remove from state if not deployed
+	if machine.Status != node.StatusDeployed {
+		d.SetId("")
+		return nil
 	}
 	// Set Terraform state
 	ipAddresses := make([]string, len(machine.IPAddresses))
@@ -384,13 +390,13 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, meta an
 	// Release MAAS machine
 	_, err := client.Machine.Release(d.Id(), releaseParams)
 	if err != nil {
-		return diag.FromErr(err)
+		return unsetIfNotFoundError(d, err)
 	}
 
 	// Wait MAAS machine to be released
 	_, err = waitForMachineStatus(ctx, client, d.Id(), []string{"Releasing", "Disk erasing"}, []string{"Ready"}, d.Timeout(schema.TimeoutDelete))
 	if err != nil {
-		return diag.FromErr(err)
+		return unsetIfNotFoundError(d, err)
 	}
 
 	return nil
