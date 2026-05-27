@@ -277,7 +277,7 @@ func resourceVMHostCreate(ctx context.Context, d *schema.ResourceData, meta any)
 		ctx, client, vmHost.Host.SystemID,
 		[]string{"20-maas-03-machine-resources", "50-maas-01-commissioning"},
 		[]entity.ResultStatus{entity.PENDING, entity.RUNNING},
-		[]entity.ResultStatus{entity.PASSED},
+		[]entity.ResultStatus{entity.PASSED, entity.SKIPPED},
 		d.Timeout(schema.TimeoutCreate),
 	)
 	if err != nil {
@@ -521,9 +521,11 @@ func getVMHostDeployParams(d *schema.ResourceData, vmHostType string) (*entity.M
 	return &deployParams, nil
 }
 
+// Returns a function that waits for specific scripts to appear in the Node Results API, with specific target statuses.
 func getVMHostCommissioningScriptsStatusFunc(client *client.Client, systemID string, scripts []string, pendingStatuses []entity.ResultStatus, targetStatuses []entity.ResultStatus) retry.StateRefreshFunc {
 	// Create a set of scripts
 	scriptSet := make(map[string]struct{}, len(scripts))
+	passedScripts := make(map[string]bool, len(scripts))
 	for _, s := range scripts {
 		scriptSet[s] = struct{}{}
 	}
@@ -549,16 +551,12 @@ func getVMHostCommissioningScriptsStatusFunc(client *client.Client, systemID str
 	}
 
 	return func() (any, string, error) {
-		params := entity.NodeResultParams{
-			Type: entity.COMMISSIONING,
-		}
+		params := entity.NodeResultParams{}
 
 		results, err := client.NodeResults.Get(systemID, &params)
 		if err != nil {
 			return nil, "", err
 		}
-
-		passedScripts := make(map[string]bool, len(scripts))
 
 		for _, result := range results {
 			for _, nodeResult := range result.Results {
@@ -567,7 +565,7 @@ func getVMHostCommissioningScriptsStatusFunc(client *client.Client, systemID str
 				}
 				switch {
 				case isTarget(nodeResult.Status):
-					log.Printf("[DEBUG] VM host (%s) commissioning script reached target status: %s", systemID, nodeResult.Name)
+					log.Printf("[INFO] VM host (%s) commissioning script reached target status: %s", systemID, nodeResult.Name)
 					passedScripts[nodeResult.Name] = true
 				case isPending(nodeResult.Status):
 					// still in progress, keep waiting
@@ -581,13 +579,18 @@ func getVMHostCommissioningScriptsStatusFunc(client *client.Client, systemID str
 			return results, "Commissioned", nil
 		}
 
-		log.Printf("[DEBUG] VM host (%s) commissioning scripts not passed: %v", systemID, passedScripts)
+		log.Printf("[INFO] VM host (%s) commissioning scripts not passed: %v", systemID, passedScripts)
 		return results, "Commissioning", nil
 	}
 }
 
 func waitForVMHostCommissioning(ctx context.Context, client *client.Client, systemID string, scripts []string, pendingStatuses []entity.ResultStatus, targetStatuses []entity.ResultStatus, maxTimeout time.Duration) error {
-	log.Printf("[DEBUG] Waiting for VM host (%s) commissioning scripts to pass\n", systemID)
+	if systemID == "" {
+		log.Printf("[INFO] System ID is empty, skipping waiting for VM host commissioning")
+		return nil
+	}
+
+	log.Printf("[INFO] Waiting for VM host (%s) commissioning scripts to pass\n", systemID)
 	stateConf := &retry.StateChangeConf{
 		Pending:    []string{"Commissioning"},
 		Target:     []string{"Commissioned"},
