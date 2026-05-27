@@ -3,6 +3,7 @@ package maas
 import (
 	"encoding/base64"
 	"fmt"
+	"log"
 	"net/mail"
 	"strconv"
 	"strings"
@@ -227,7 +228,12 @@ func stripWhitespace(s string) string {
 }
 
 func checkSemverConstraint(currentVersion, semverConstraint string) error {
-	if semverConstraint == "" || currentVersion == "" {
+	if semverConstraint == "" {
+		return nil
+	}
+
+	if currentVersion == "" {
+		log.Printf("[WARN] Skipping MAAS version check (%s): MAAS version is unknown", semverConstraint)
 		return nil
 	}
 

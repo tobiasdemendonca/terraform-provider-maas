@@ -51,6 +51,12 @@ func Provider() *schema.Provider {
 				Default:     "false",
 				Description: "Skip TLS certificate verification.",
 			},
+			"skip_version_check": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Skip the API call to retrieve the MAAS server version during provider configuration. When enabled, version-gated resource validations are not enforced.",
+			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"maas_boot_source_selection":      resourceMAASBootSourceSelection(),
@@ -152,16 +158,27 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (any, diag.D
 		return nil, diags
 	}
 
-	v, err := c.Version.Get()
-	if err != nil {
+	maasVersion := ""
+	if d.Get("skip_version_check").(bool) {
 		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Unable to get MAAS version",
-			Detail:   fmt.Sprintf("Unable to get MAAS version using the provided configuration: %s", err),
+			Severity: diag.Warning,
+			Summary:  "MAAS version check skipped",
+			Detail:   "Provider configuration skipped the MAAS version API call. Version-gated resource validations (e.g. maas_machine.is_dpu, maas_instance release_params.scripts) will not be enforced.",
 		})
+	} else {
+		v, err := c.Version.Get()
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Unable to get MAAS version",
+				Detail:   fmt.Sprintf("Unable to get MAAS version using the provided configuration: %s", err),
+			})
 
-		return nil, diags
+			return nil, diags
+		}
+
+		maasVersion = v.Version
 	}
 
-	return &ClientConfig{Client: c, InstallationMethod: d.Get("installation_method").(string), MAASVersion: v.Version}, diags
+	return &ClientConfig{Client: c, InstallationMethod: d.Get("installation_method").(string), MAASVersion: maasVersion}, diags
 }
