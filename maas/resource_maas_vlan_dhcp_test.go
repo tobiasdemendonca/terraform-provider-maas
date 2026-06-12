@@ -360,7 +360,7 @@ data "maas_vlan" "test_%v" {
 resource "maas_subnet" "test_%v" {
   cidr   = %q
   fabric = maas_fabric.test_%v.id
-  vlan   = data.maas_vlan.test_%v.id
+  vlan   = data.maas_vlan.test_%v.vlan
 }
 
 resource "maas_subnet_ip_range" "test_%v" {
