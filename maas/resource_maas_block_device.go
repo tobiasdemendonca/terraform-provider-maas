@@ -199,7 +199,7 @@ func resourceBlockDeviceCreate(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
-	blockDevice, err := findBlockDevice(client, machine.SystemID, d.Get("name").(string))
+	blockDevice, err := findBlockDeviceFromSchema(client, machine.SystemID, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -334,6 +334,42 @@ func getBlockDeviceParams(d *schema.ResourceData) *entity.BlockDeviceParams {
 		Serial:    d.Get("serial").(string),
 		IDPath:    d.Get("id_path").(string),
 	}
+}
+
+// findBlockDeviceFromSchema searches for an existing block device on the machine using
+// a priority hierarchy: id_path (highest), then model+serial pair, then name (lowest).
+// The name match is deferred until after scanning all devices because it is the lowest
+// priority and should only be used as a fallback if no higher-priority match is found.
+func findBlockDeviceFromSchema(client *client.Client, machineID string, d *schema.ResourceData) (*entity.BlockDevice, error) {
+	blockDevices, err := client.BlockDevices.Get(machineID)
+	if err != nil {
+		return nil, err
+	}
+
+	idPath := d.Get("id_path").(string)
+	model := d.Get("model").(string)
+	serial := d.Get("serial").(string)
+	name := d.Get("name").(string)
+
+	var nameMatch *entity.BlockDevice
+
+	for i := range blockDevices {
+		b := blockDevices[i]
+
+		if idPath != "" && (b.IDPath == idPath || b.Path == idPath) {
+			return &blockDevices[i], nil
+		}
+
+		if model != "" && serial != "" && b.Model == model && b.Serial == serial {
+			return &blockDevices[i], nil
+		}
+
+		if name != "" && b.Name == name {
+			nameMatch = &blockDevices[i]
+		}
+	}
+
+	return nameMatch, nil
 }
 
 func findBlockDevice(client *client.Client, machineID string, identifier string) (*entity.BlockDevice, error) {
