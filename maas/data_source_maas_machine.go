@@ -55,6 +55,12 @@ func dataSourceMAASMachine() *schema.Resource {
 							Computed:    true,
 							Description: "The size of the block device (in GB).",
 						},
+						"tags": {
+							Type:        schema.TypeSet,
+							Computed:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+							Description: "A set of tag names assigned to the block device.",
+						},
 					},
 				},
 			},
@@ -166,7 +172,7 @@ func dataSourceMachineRead(ctx context.Context, d *schema.ResourceData, meta any
 		"power_parameters": powerParamsJSON,
 		"pxe_mac_address":  machine.BootInterface.MACAddress,
 		"status":           machine.StatusName,
-		"block_devices":    getAllBlockDeviceMachineParameters(physicalBlockDevices),
+		"block_devices":    getShortBlockDeviceMachineParameters(physicalBlockDevices),
 	}
 	if err := setTerraformState(d, tfState); err != nil {
 		return diag.FromErr(err)

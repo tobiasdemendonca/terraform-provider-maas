@@ -36,6 +36,7 @@ func TestAccDataSourceMAASMachine_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("data.maas_machine.test", "status", "Ready"),
 					resource.TestCheckResourceAttrSet("data.maas_machine.test", "zone"),
 					resource.TestCheckResourceAttrSet("data.maas_machine.test", "block_devices.#"),
+					resource.TestCheckTypeSetElemAttr("data.maas_machine.test", "block_devices.1.tags.*", "test-tag"),
 					testAccCheckNoBlockDeviceWithName("data.maas_machine.test", "test-volume-group-virtual-test"),
 				),
 			},
@@ -78,6 +79,12 @@ resource "maas_block_device" "test" {
   name           = "test-block-device"
   id_path        = "/dev/sda"
   size_gigabytes = 2
+}
+
+resource "maas_block_device_tag" "test" {
+  machine         = maas_vm_host_machine.test.id
+  block_device_id = maas_block_device.test.id
+  tags            = ["test-tag"]
 }
 
 resource "maas_volume_group" "test" {

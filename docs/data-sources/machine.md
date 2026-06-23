@@ -63,3 +63,4 @@ Read-Only:
 - `name` (String)
 - `serial` (String)
 - `size_gigabytes` (Number)
+- `tags` (Set of String)

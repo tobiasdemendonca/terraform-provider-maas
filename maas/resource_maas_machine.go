@@ -116,6 +116,12 @@ func resourceMAASMachine() *schema.Resource {
 							Computed:    true,
 							Description: "The size of the block device (in GB).",
 						},
+						"tags": {
+							Type:        schema.TypeSet,
+							Computed:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+							Description: "A set of tag names assigned to the block device.",
+						},
 					},
 				},
 			},
@@ -333,7 +339,7 @@ func resourceMachineRead(ctx context.Context, d *schema.ResourceData, meta any) 
 		return diag.FromErr(err)
 	}
 
-	blockDevices := getAllBlockDeviceMachineParameters(machine.BlockDeviceSet)
+	blockDevices := getShortBlockDeviceMachineParameters(machine.BlockDeviceSet)
 	if err := d.Set("block_devices", blockDevices); err != nil {
 		return diag.FromErr(err)
 	}
@@ -518,7 +524,10 @@ func getMachine(client *client.Client, identifier string) (*entity.Machine, erro
 	return nil, fmt.Errorf("machine (%s) not found", identifier)
 }
 
-func getAllBlockDeviceMachineParameters(blockDevices []entity.BlockDevice) []map[string]any {
+// Get a subset of block device parameters, which are deemed the minimum required to make the nested block_devices schema in the `machine` resource useful for users.
+// These are primarily identifiers, which can be used with a corresponding data source. The complete set of block device attributes
+// (e.g. partitions) are intentionally left out and should be obtained via a data source instead.
+func getShortBlockDeviceMachineParameters(blockDevices []entity.BlockDevice) []map[string]any {
 	// sort block devices by ID
 	sort.Slice(blockDevices, func(i, j int) bool {
 		return blockDevices[i].ID < blockDevices[j].ID
@@ -534,6 +543,7 @@ func getAllBlockDeviceMachineParameters(blockDevices []entity.BlockDevice) []map
 			"id_path":        blockDevice.IDPath,
 			"model":          blockDevice.Model,
 			"serial":         blockDevice.Serial,
+			"tags":           blockDevice.Tags,
 		}
 	}
 
