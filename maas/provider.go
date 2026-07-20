@@ -3,6 +3,7 @@ package maas
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/canonical/gomaasclient/client"
@@ -50,6 +51,12 @@ func Provider() *schema.Provider {
 				Optional:    true,
 				Default:     "false",
 				Description: "Skip TLS certificate verification.",
+			},
+			"skip_version_checks": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     "false",
+				Description: "Skip MAAS version checks.",
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
@@ -137,6 +144,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (any, diag.D
 		APIVersion:            d.Get("api_version").(string),
 		TLSCACertPath:         d.Get("tls_ca_cert_path").(string),
 		TLSInsecureSkipVerify: d.Get("tls_insecure_skip_verify").(bool),
+		SkipVersionChecks:     d.Get("skip_version_checks").(bool),
 	}
 
 	// Warning or errors can be collected in a slice type
@@ -153,16 +161,23 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (any, diag.D
 		return nil, diags
 	}
 
-	v, err := c.Version.Get()
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Unable to get MAAS version",
-			Detail:   fmt.Sprintf("Unable to get MAAS version using the provided configuration: %s", err),
-		})
+	var version string
+	if !config.SkipVersionChecks {
+		v, err := c.Version.Get()
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Unable to get MAAS version",
+				Detail:   fmt.Sprintf("Unable to get MAAS version using the provided configuration: %s", err),
+			})
 
-		return nil, diags
+			return nil, diags
+		}
+		version = v.Version
+	} else {
+		log.Printf("[WARN] Skipping MAAS version check as per configuration")
+		version = ""
 	}
 
-	return &ClientConfig{Client: c, InstallationMethod: d.Get("installation_method").(string), MAASVersion: v.Version}, diags
+	return &ClientConfig{Client: c, InstallationMethod: d.Get("installation_method").(string), MAASVersion: version}, diags
 }
