@@ -40,6 +40,12 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("MAAS_INSTALLATION_METHOD", "snap"),
 				Description: "The MAAS installation method. Valid options: `snap`, and `deb`.",
 			},
+			"skip_api_checks": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     "false",
+				Description: "Skip all checks which make an API call to MAAS during the provider configuration phase. This allows the provider to create a plan without a running MAAS present, such as when using Terragrunt stacks. This will potentially allow invalid plans, so use with caution. This currently only skips MAAS version checks.",
+			},
 			"tls_ca_cert_path": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -51,12 +57,6 @@ func Provider() *schema.Provider {
 				Optional:    true,
 				Default:     "false",
 				Description: "Skip TLS certificate verification.",
-			},
-			"skip_api_checks": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     "false",
-				Description: "Skip all checks which make an API call to MAAS during the provider configuration phase. This allows the provider to create a plan without a running MAAS present, such as when using Terragrunt stacks. This will potentially allow invalid plans, so use with caution. This currently only skips MAAS version checks.",
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
