@@ -14,7 +14,7 @@ type Config struct {
 	APIVersion            string
 	TLSCACertPath         string
 	TLSInsecureSkipVerify bool
-	SkipVersionChecks     bool
+	SkipAPIChecks         bool
 }
 
 func (c *Config) Client() (*client.Client, error) {

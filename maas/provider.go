@@ -52,11 +52,11 @@ func Provider() *schema.Provider {
 				Default:     "false",
 				Description: "Skip TLS certificate verification.",
 			},
-			"skip_version_checks": {
+			"skip_api_checks": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     "false",
-				Description: "Skip MAAS version checks.",
+				Description: "Skip all checks which make an API call to MAAS during the provider configuration phase. This allows the provider to create a plan without a running MAAS present, such as when using Terragrunt stacks. This will potentially allow invalid plans, so use with caution. This currently only skips MAAS version checks.",
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
@@ -144,7 +144,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (any, diag.D
 		APIVersion:            d.Get("api_version").(string),
 		TLSCACertPath:         d.Get("tls_ca_cert_path").(string),
 		TLSInsecureSkipVerify: d.Get("tls_insecure_skip_verify").(bool),
-		SkipVersionChecks:     d.Get("skip_version_checks").(bool),
+		SkipAPIChecks:     d.Get("skip_api_checks").(bool),
 	}
 
 	// Warning or errors can be collected in a slice type
@@ -162,7 +162,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (any, diag.D
 	}
 
 	var version string
-	if !config.SkipVersionChecks {
+	if !config.SkipAPIChecks {
 		v, err := c.Version.Get()
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
@@ -175,7 +175,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (any, diag.D
 		}
 		version = v.Version
 	} else {
-		log.Printf("[WARN] Skipping MAAS version check as per configuration")
+		log.Printf("[INFO] Skipping MAAS version check as per configuration")
 		version = ""
 	}
 
