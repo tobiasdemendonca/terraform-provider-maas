@@ -144,7 +144,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (any, diag.D
 		APIVersion:            d.Get("api_version").(string),
 		TLSCACertPath:         d.Get("tls_ca_cert_path").(string),
 		TLSInsecureSkipVerify: d.Get("tls_insecure_skip_verify").(bool),
-		SkipAPIChecks:     d.Get("skip_api_checks").(bool),
+		SkipAPIChecks:         d.Get("skip_api_checks").(bool),
 	}
 
 	// Warning or errors can be collected in a slice type
@@ -162,6 +162,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (any, diag.D
 	}
 
 	var version string
+
 	if !config.SkipAPIChecks {
 		v, err := c.Version.Get()
 		if err != nil {
@@ -173,9 +174,11 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (any, diag.D
 
 			return nil, diags
 		}
+
 		version = v.Version
 	} else {
 		log.Printf("[INFO] Skipping MAAS version check as per configuration")
+
 		version = ""
 	}
 
