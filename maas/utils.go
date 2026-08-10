@@ -228,6 +228,9 @@ func stripWhitespace(s string) string {
 }
 
 func checkSemverConstraint(currentVersion, semverConstraint string) error {
+	// currentVersion can be an empty string if skip_api_checks is enabled.
+	// This means version incompatibilities will only be detected at 
+	// apply time.
 	if semverConstraint == "" || currentVersion == "" {
 		return nil
 	}

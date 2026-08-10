@@ -3,7 +3,6 @@ package maas
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/canonical/gomaasclient/client"
@@ -177,8 +176,13 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (any, diag.D
 
 		version = v.Version
 	} else {
-		log.Printf("[INFO] Skipping MAAS version check as per configuration")
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Skipping MAAS API checks",
+			Detail:   "skip_api_checks is enabled: the MAAS version check was skipped, so version-gated resource validations are not enforced. The resulting plan may not be valid against the target MAAS.",
+		})
 
+		// An empty  string is skipped by checkSemverConstraint
 		version = ""
 	}
 
