@@ -328,6 +328,94 @@ resource "maas_subnet" "test_subnet" {
 	})
 }
 
+// Test the three possible uses of the dns_servers argument:
+//   - omitted from config     -> computed, MAAS's value is left untouched
+//   - explicitly set to []    -> every DNS server is removed from the subnet
+//   - explicitly set to a list -> those DNS servers are set
+func TestAccResourceMAASSubnet_dnsServersTriState(t *testing.T) {
+	subnetName := acctest.RandomWithPrefix("test-subnet-dns")
+	subnetAttrName := "maas_subnet.test_subnet_dns"
+	cidr := testutils.GenerateRandomCIDR()
+
+	withDNS := fmt.Sprintf(`
+resource "maas_subnet" "test_subnet_dns" {
+  cidr        = %q
+  name        = %q
+  dns_servers = ["1.1.1.1", "8.8.8.8"]
+}
+`, cidr, subnetName)
+
+	omitted := fmt.Sprintf(`
+resource "maas_subnet" "test_subnet_dns" {
+  cidr = %q
+  name = %q
+}
+`, cidr, subnetName)
+
+	emptied := fmt.Sprintf(`
+resource "maas_subnet" "test_subnet_dns" {
+  cidr        = %q
+  name        = %q
+  dns_servers = []
+}
+`, cidr, subnetName)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testutils.PreCheck(t, nil) },
+		Providers:    testutils.TestAccProviders,
+		CheckDestroy: testAccCheckMAASSubnetDestroy,
+		ErrorCheck:   func(err error) error { return err },
+		Steps: []resource.TestStep{
+			// Explicit values are set.
+			{
+				Config: withDNS,
+				Check: resource.ComposeTestCheckFunc(
+					testAccMAASSubnetCheckExists(subnetAttrName),
+					resource.TestCheckResourceAttr(subnetAttrName, "dns_servers.#", "2"),
+					resource.TestCheckResourceAttr(subnetAttrName, "dns_servers.0", "1.1.1.1"),
+					resource.TestCheckResourceAttr(subnetAttrName, "dns_servers.1", "8.8.8.8"),
+				),
+			},
+			// Removing the argument is a no-op: the value becomes computed and
+			// the servers configured above are preserved, not cleared.
+			{
+				Config: omitted,
+				Check: resource.ComposeTestCheckFunc(
+					testAccMAASSubnetCheckExists(subnetAttrName),
+					resource.TestCheckResourceAttr(subnetAttrName, "dns_servers.#", "2"),
+					resource.TestCheckResourceAttr(subnetAttrName, "dns_servers.0", "1.1.1.1"),
+					resource.TestCheckResourceAttr(subnetAttrName, "dns_servers.1", "8.8.8.8"),
+				),
+			},
+			// The config above must be stable, i.e. no plan expected.
+			{
+				Config:   omitted,
+				PlanOnly: true,
+			},
+			// An explicit empty list is what actually clears the DNS servers.
+			{
+				Config: emptied,
+				Check: resource.ComposeTestCheckFunc(
+					testAccMAASSubnetCheckExists(subnetAttrName),
+					resource.TestCheckResourceAttr(subnetAttrName, "dns_servers.#", "0"),
+				),
+			},
+			{
+				Config:   emptied,
+				PlanOnly: true,
+			},
+			// They can be set again afterwards.
+			{
+				Config: withDNS,
+				Check: resource.ComposeTestCheckFunc(
+					testAccMAASSubnetCheckExists(subnetAttrName),
+					resource.TestCheckResourceAttr(subnetAttrName, "dns_servers.#", "2"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceMAASSubnet_ipRangesLifecycle(t *testing.T) {
 	subnetName := acctest.RandomWithPrefix("test-subnet")
 	subnetAttrName := "maas_subnet.test_subnet"
