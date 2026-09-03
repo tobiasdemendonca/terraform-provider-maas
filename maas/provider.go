@@ -47,7 +47,7 @@ func Provider() *schema.Provider {
 					"This allows the provider to create a plan without a running MAAS present, such as when using " +
 					"Terragrunt stacks. This will potentially allow invalid plans, so use with caution. This currently " +
 					"only skips getting the current MAAS version, so resource version compatibility can only be " +
-					"determined at apply time.",
+					"determined at apply time directly from MAAS.",
 			},
 			"tls_ca_cert_path": {
 				Type:        schema.TypeString,
