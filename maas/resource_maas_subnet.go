@@ -21,7 +21,6 @@ func resourceMAASSubnet() *schema.Resource {
 		ReadContext:   resourceSubnetRead,
 		UpdateContext: resourceSubnetUpdate,
 		DeleteContext: resourceSubnetDelete,
-		CustomizeDiff: customizeDiffSubnet,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				client := meta.(*ClientConfig).Client
@@ -59,7 +58,7 @@ func resourceMAASSubnet() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
-				Description: "List of IP addresses set as DNS servers for the new subnet. This argument is computed if it's not set.",
+				Description: "List of IP addresses set as DNS servers for the new subnet. If this argument is omitted, it is computed from MAAS and left unmanaged. Set it explicitly to `[]` to remove all DNS servers from the subnet.",
 				Elem: &schema.Schema{
 					ValidateDiagFunc: isElementIPAddress,
 					Type:             schema.TypeString,
@@ -178,8 +177,8 @@ func resourceSubnetRead(ctx context.Context, d *schema.ResourceData, meta any) d
 	// Handle potential "<nil>" value from net.IP
 	gatewayIP := ipToString(subnet.GatewayIP)
 
-	// Populate dns_servers from MAAS
-	// CustomizeDiff will handle detecting when it should be cleared
+	// Populate dns_servers from MAAS. When the argument is omitted from the
+	// configuration it is computed, so whatever MAAS reports is authoritative.
 	dnsServers := make([]string, len(subnet.DNSServers))
 	for i, ip := range subnet.DNSServers {
 		dnsServers[i] = ipToString(ip)
@@ -385,29 +384,28 @@ func getSubnetParams(client *client.Client, d *schema.ResourceData) (*entity.Sub
 		Managed:    true,
 	}
 
-	// Handle dns_servers: distinguish between not set, empty list, and with values
-	// Check both raw config and HasChange (CustomizeDiff may force changes)
-	dnsServersInConfig := false
-
-	rawConfig := d.GetRawConfig()
-	if !rawConfig.IsNull() {
-		dnsServersInConfig = !rawConfig.GetAttr("dns_servers").IsNull()
-	}
-
-	// If explicitly in config OR CustomizeDiff detected removal and forced a change
-	if dnsServersInConfig || (d.Id() != "" && d.HasChange("dns_servers")) {
-		dnsServers := convertToStringSlice(d.Get("dns_servers"))
-		if len(dnsServers) == 0 {
-			// Empty list in config → send single empty string to clear values in MAAS
-			// MAAS API requires dns_servers="" (not omitted) to clear DNS servers
-			params.DNSServers = []string{""}
-		} else {
-			// Non-empty list → send the values
-			params.DNSServers = dnsServers
+	// There are three cases for dns_servers, to distinguish them we need GetRawConfig
+	// because d.Get cannot tell an explicit empty list apart from an unset one on an
+	// Optional+Computed attribute:
+	//
+	//	omitted     -> computed; the field is not sent, so MAAS keeps whatever it has
+	//	[]          -> clear every DNS server on the subnet
+	//	[a, b, ...] -> set those DNS servers
+	//
+	// The omitted cases is required to keep the dns_servers field a computed field, to
+	// avoid breaking changes to the provider
+	if rawConfig := d.GetRawConfig(); !rawConfig.IsNull() {
+		// isNull=False and isKnown=True means the attribute was set in the configuration, even if it was an empty list
+		if dnsServers := rawConfig.GetAttr("dns_servers"); !dnsServers.IsNull() && dnsServers.IsKnown() {
+			if dnsServers.LengthInt() == 0 {
+				// User has specified [], tell MAAS to remove all dns servers by sending a list with empty string
+				params.DNSServers = []string{""}
+			} else {
+				// User has specified a list of DNS servers
+				params.DNSServers = convertToStringSlice(d.Get("dns_servers"))
+			}
 		}
 	}
-	// If dns_servers is not set in config and no change detected, don't include it in params
-	// This lets MAAS use its defaults on creation
 
 	if p, ok := d.GetOk("fabric"); ok {
 		fabric, err := getFabric(client, p.(string))
@@ -457,24 +455,4 @@ func getSubnet(client *client.Client, identifier string) (*entity.Subnet, error)
 	}
 
 	return subnet, nil
-}
-
-func customizeDiffSubnet(ctx context.Context, diff *schema.ResourceDiff, meta any) error {
-	// Check if dns_servers is in the config
-	rawConfig := diff.GetRawConfig()
-	if !rawConfig.IsNull() {
-		// If dns_servers is not in config but exists in state (has a value), force it to be cleared
-		if rawConfig.GetAttr("dns_servers").IsNull() {
-			if oldDNS, _ := diff.GetOk("dns_servers"); oldDNS != nil {
-				if len(oldDNS.([]any)) > 0 {
-					// User removed dns_servers from config - set to empty list to trigger update
-					if err := diff.SetNew("dns_servers", []any{}); err != nil {
-						return err
-					}
-				}
-			}
-		}
-	}
-
-	return nil
 }
