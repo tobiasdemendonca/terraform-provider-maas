@@ -118,6 +118,10 @@ To run the tests:
         ```bash
         make testacc TESTARGS="-run=TestAcc<resource_name>_basic"
         ```
+    - Run a specific acceptance test without using the cached result:
+        ```bash
+        make testacc TESTARGS="-run=TestAcc<resource_name>_basic -count=1"
+        ```
     - Run a group of acceptance tests with names matching the regex:
         ```bash
         make testacc TESTARGS="-run=TestAcc<resource_name>"
